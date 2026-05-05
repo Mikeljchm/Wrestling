@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>HOTT WRESTLING · Feel the Heat</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg: #0a0303; --heat-glow: #ff4500; --heat-bright: #ff6a1a;
+      --ember: #ff8c42; --text: #ddd; --border: #2a1515;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Arial', sans-serif; min-height: 100vh; overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      background-image: radial-gradient(ellipse at 50% 0%, #2a0f0f 0%, #0a0303 70%);
+    }
+    #app { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; }
+    #fire-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.9; }
+
+    .flare-overlay {
+      position: fixed; inset: 0; pointer-events: none; z-index: 999;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(255,69,0,0.6) 100%);
+      opacity: 0; transition: opacity 0.15s ease;
+    }
+    .flare-overlay.active { opacity: 1; transition: opacity 0s; }
+
+    .fire-toggle {
+      position: fixed; bottom: 25px; right: 25px; z-index: 1000;
+      width: 55px; height: 55px; border-radius: 50%;
+      background: rgba(20,5,5,0.85); backdrop-filter: blur(10px);
+      border: 2px solid #3a1a1a; color: #555; font-size: 2.2rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+      user-select: none; -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+    .fire-toggle.playing {
+      border-color: var(--heat-glow); color: var(--heat-bright);
+      background: rgba(30,10,10,0.9);
+      text-shadow: 0 0 20px var(--heat-glow), 0 0 40px var(--heat-bright);
+      box-shadow: 0 0 35px rgba(255,69,0,0.6), 0 0 70px rgba(255,69,0,0.3);
+      animation: fire-pulse 1.8s infinite;
+    }
+    @keyframes fire-pulse {
+      0%,100% { box-shadow: 0 0 25px rgba(255,69,0,0.5), 0 0 50px rgba(255,106,26,0.4); transform: scale(1); }
+      50% { box-shadow: 0 0 45px rgba(255,106,26,0.8), 0 0 80px rgba(255,69,0,0.6); transform: scale(1.1); }
+    }
+    .fire-toggle:active { transform: scale(0.92); }
+
+    .volume-indicator {
+      position: fixed; bottom: 90px; right: 30px; z-index: 1001;
+      background: rgba(0,0,0,0.7); color: var(--ember);
+      font-family: 'Courier New', monospace; font-size: 0.7rem;
+      padding: 0.3rem 0.6rem; border-radius: 12px;
+      opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    }
+    .volume-indicator.show { opacity: 1; }
+
+    #age-overlay {
+      position: fixed; inset: 0; background: #0a0303; z-index: 99999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 1.5rem; transition: opacity 0.5s ease, visibility 0.5s ease;
+      background-image: radial-gradient(circle at 50% 40%, rgba(255,80,0,0.2) 0%, transparent 60%);
+    }
+    #age-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    #age-overlay h2 {
+      font-family: 'Impact', 'Arial Black', sans-serif; font-size: 2.4rem; color: var(--heat-bright);
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.8rem;
+      text-shadow: 0 0 40px var(--heat-glow); animation: flicker-text 1.8s infinite;
+    }
+    @keyframes flicker-text {
+      0%,100% { text-shadow: 0 0 40px var(--heat-glow), 0 0 80px rgba(255,69,0,0.6); }
+      50% { text-shadow: 0 0 60px var(--heat-bright), 0 0 100px rgba(255,106,26,0.8); }
+    }
+    #age-overlay .sub { color: #ccc; font-size: 0.9rem; margin-bottom: 2.2rem; max-width: 280px; font-style: italic; }
+    #age-overlay .btn-enter {
+      background: rgba(255,69,0,0.1); border: 2px solid var(--heat-glow); color: var(--heat-bright);
+      padding: 1rem 2.5rem; font-family: 'Impact', sans-serif; font-size: 1.1rem; text-transform: uppercase;
+      cursor: pointer; border-radius: 4px; transition: 0.3s; box-shadow: 0 0 25px rgba(255,69,0,0.3);
+    }
+    #age-overlay .btn-enter:active { background: var(--heat-glow); color: #fff; transform: scale(0.96); }
+    #age-overlay .btn-no {
+      background: transparent; border: 1px solid #553333; color: #997777; padding: 0.5rem 1.5rem;
+      cursor: pointer; margin-top: 1rem; border-radius: 4px; font-size: 0.8rem;
+    }
+
+    #main-content { opacity: 0; transition: opacity 0.7s 0.3s; width: 100%; position: relative; z-index: 1; }
+    #main-content.visible { opacity: 1; }
+
+    .hero {
+      padding: 2.5rem 1.5rem 2rem; text-align: center; border-bottom: 1px solid #3a1a1a;
+      background: linear-gradient(to bottom, rgba(40,10,10,0.7), transparent);
+    }
+    .hero h1 {
+      font-family: 'Impact', sans-serif; font-size: 2.8rem; color: #fff; text-transform: uppercase;
+      text-shadow: 0 0 50px rgba(255,69,0,0.7);
+    }
+    .hero h1 .hot { color: var(--heat-bright); text-shadow: 0 0 60px var(--heat-glow); }
+    .hero .tagline { font-family: 'Courier New', monospace; color: #dd9966; font-size: 0.75rem; }
+
+    .heat-zone {
+      padding: 2.5rem 1.5rem; text-align: center; background: #140505; border-bottom: 1px solid #3a1a1a;
+      position: relative; overflow: hidden;
+    }
+    .heat-zone::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(255,80,0,0.2) 0%, transparent 65%);
+      animation: zone-glow 3s infinite;
+    }
+    @keyframes zone-glow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    .zone-label {
+      font-family: 'Courier New', monospace; color: #dd7744; font-size: 0.7rem; letter-spacing: 0.25em;
+      margin-bottom: 1.5rem; position: relative; z-index: 1;
+    }
+    .btn-heat-zone {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      background: rgba(30,10,10,0.9); border: 2px solid var(--heat-glow); color: #fff;
+      padding: 1rem 2.8rem; font-family: 'Impact', sans-serif; font-size: 1.2rem;
+      text-transform: uppercase; text-decoration: none; cursor: pointer; border-radius: 4px;
+      box-shadow: 0 0 40px rgba(255,69,0,0.3); animation: border-flicker 2s infinite;
+      transition: 0.4s; position: relative; z-index: 1;
+    }
+    .btn-heat-zone:active { background: var(--heat-glow); color: #000; transform: scale(0.97); }
+    .btn-heat-zone .tg-icon { width: 34px; height: 34px; filter: drop-shadow(0 0 10px #ff4500); }
+    .zone-hint {
+      margin-top: 1rem; color: var(--ember); font-size: 0.7rem; font-family: 'Courier New', monospace;
+      font-style: italic; position: relative; z-index: 1;
+    }
+
+    .carousel-section { padding: 2.5rem 0 2rem; background: #0f0303; border-bottom: 1px solid #3a1a1a; text-align: center; }
+    .carousel-title {
+      font-family: 'Impact', sans-serif; font-size: 1.3rem; color: var(--ember); letter-spacing: 0.15em;
+      margin-bottom: 1.5rem; text-shadow: 0 0 15px rgba(255,69,0,0.4);
+    }
+    .heat-carousel-wrapper { position: relative; max-width: 340px; margin: 0 auto; height: 400px; overflow: hidden; touch-action: pan-y; }
+    .heat-carousel-track { display: flex; align-items: center; height: 100%; transition: transform 0.5s; }
+    .heat-card {
+      flex: 0 0 82%; margin: 0 9%; height: 92%; border-radius: 6px; overflow: hidden;
+      background: #200a0a; border: 2px solid #4a2020; box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+      transition: all 0.4s ease; cursor: pointer; position: relative;
+    }
+    .heat-card.active-heat {
+      border-color: var(--heat-glow); box-shadow: 0 0 40px rgba(255,69,0,0.5), 0 0 80px rgba(255,80,0,0.2);
+      transform: scale(1.03);
+    }
+    .heat-card img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.6s ease, filter 0.4s ease; will-change: transform;
+    }
+    .heat-card.active-heat img { filter: brightness(1.1) contrast(1.1) saturate(1.3); }
+    .card-heat {
+      position: absolute; bottom: 0; left: 0; right: 0; padding: 0.7rem;
+      background: linear-gradient(transparent, rgba(255,30,0,0.4)); color: #fff;
+      font-family: 'Courier New', monospace; font-size: 0.7rem; text-align: center;
+      opacity: 0; transition: 0.35s; text-shadow: 0 0 15px rgba(255,69,0,0.9); pointer-events: none;
+    }
+    .heat-card.active-heat .card-heat { opacity: 1; }
+
+    .heat-controls { display: flex; justify-content: center; gap: 1.2rem; margin-top: 1.2rem; }
+    .heat-controls button {
+      background: transparent; border: 2px solid #4a2a2a; color: #dd8866;
+      width: 42px; height: 42px; border-radius: 50%; font-size: 1.3rem; cursor: pointer;
+      transition: 0.3s;
+    }
+    .heat-controls button:active { border-color: var(--heat-glow); color: #fff; box-shadow: 0 0 20px rgba(255,69,0,0.5); }
+    .heat-dots { display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.8rem; }
+    .heat-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #442222; transition: 0.3s; cursor: pointer; }
+    .heat-dots .dot.active { background: var(--heat-bright); box-shadow: 0 0 15px var(--heat-glow); transform: scale(1.5); }
+
+    .hot-spots-section { padding: 2.5rem 1.5rem; background: #140505; text-align: center; border-bottom: 1px solid #3a1a1a; }
+    .spots-title { font-family: 'Impact', sans-serif; font-size: 1rem; color: var(--ember); margin-bottom: 2rem; text-shadow: 0 0 10px rgba(255,69,0,0.3); }
+    .spots-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; max-width: 400px; margin: 0 auto; }
+    .spot-link {
+      display: flex; flex-direction: column; align-items: center; gap: 0.4rem; width: 68px;
+      padding: 0.9rem 0.3rem; background: #1a0a0a; border: 1px solid #4a2020; border-radius: 4px;
+      text-decoration: none; transition: 0.3s;
+    }
+    .spot-link img { width: 28px; height: 28px; object-fit: contain; opacity: 0.8; filter: drop-shadow(0 0 4px rgba(255,100,0,0.4)); }
+    .spot-link span { font-family: 'Impact', sans-serif; font-size: 0.55rem; color: #cc8866; }
+    .spot-link:active { border-color: var(--heat-glow); background: #2a0f0f; box-shadow: 0 0 20px rgba(255,69,0,0.3); }
+    .spot-link:active img { opacity: 1; filter: drop-shadow(0 0 10px #ff4500); }
+
+    .site-footer {
+      text-align: center; padding: 2rem; color: #553333; font-size: 0.6rem;
+      font-family: 'Courier New', monospace; background: #0a0303; border-top: 1px solid #2a1515;
+    }
+
+    .lightbox {
+      position: fixed; inset: 0; background: rgba(5,1,1,0.97); z-index: 99990;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: 0.35s ease; backdrop-filter: blur(12px);
+    }
+    .lightbox.active { opacity: 1; visibility: visible; }
+    .lightbox img { max-width: 92vw; max-height: 82vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 60px rgba(0,0,0,0.9); border: 2px solid #3a1a1a; }
+    .lightbox .close-btn { position: absolute; top: 18px; right: 18px; font-size: 2rem; color: #ccaa88; cursor: pointer; z-index: 10; background: rgba(0,0,0,0.6); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .lightbox-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); font-size: 2.2rem; color: #ccaa88; cursor: pointer; z-index: 10; background: rgba(0,0,0,0.5); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; }
+    .lightbox-nav-btn.prev { left: 10px; } .lightbox-nav-btn.next { right: 10px; }
+    .lightbox-counter { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); color: #998877; font-family: 'Courier New', monospace; font-size: 0.7rem; letter-spacing: 0.15em; background: rgba(0,0,0,0.5); padding: 0.3rem 1rem; border-radius: 20px; }
+
+    .audio-error-toast { position: fixed; bottom: 90px; right: 25px; background: #1a0000; color: #ff6a1a; border: 1px solid #ff4500; padding: 0.6rem 1rem; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.7rem; z-index: 1001; box-shadow: 0 0 20px rgba(255,69,0,0.4); display: none; max-width: 250px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="fire-canvas"></canvas>
+    <div class="flare-overlay" id="flare-overlay"></div>
+
+    <div id="age-overlay">
+      <h2>CAN YOU TAKE THE HEAT?</h2>
+      <p class="sub">Adult content. 18+ only.<br>Things are about to get very hot.</p>
+      <button class="btn-enter" id="btn-enter">I'M 18+ · WARM ME UP</button>
+      <button class="btn-no" id="btn-no">Leave</button>
+    </div>
+
+    <div id="main-content">
+      <section class="hero">
+        <h1><span class="hot">HOT</span> WRESTLING</h1>
+        <p class="tagline">WHERE THE HEAT RISES</p>
+      </section>
+      <section class="heat-zone">
+        <p class="zone-label">The Hottest Room</p>
+        <a href="#" class="btn-heat-zone" id="btn-heat-zone">
+          <img src="https://i.postimg.cc/8z3NsG2c/5842a8fba6515b1e0ad75b03.png" alt="Telegram" class="tg-icon">
+          Turn Up the Heat
+        </a>
+        <p class="zone-hint">Private channel · Uncensored · Temperature rising</p>
+      </section>
+      <section class="carousel-section">
+        <h2 class="carousel-title">Scorching Moments</h2>
+        <div class="heat-carousel-wrapper" id="heat-wrapper">
+          <div class="heat-carousel-track" id="heat-track"></div>
+        </div>
+        <div class="heat-controls">
+          <button id="heat-prev">◀</button>
+          <button id="heat-next">▶</button>
+        </div>
+        <div class="heat-dots" id="heat-dots"></div>
+      </section>
+      <section class="hot-spots-section">
+        <h3 class="spots-title">Other Hot Spots</h3>
+        <div class="spots-grid">
+          <a href="https://www.facebook.com/share/1K1tch2Yzg/" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/G3YQ5j39/584ac2d03ac3a570f94a666d.png" alt="FB"><span>FB</span></a>
+          <a href="https://www.instagram.com/hott_wrestling?igsh=MWF6bjQ4bG1uYjdvMw==" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/JzgMt8ft/580b57fcd9996e24bc43c521.png" alt="IG"><span>IG</span></a>
+          <a href="https://youtube.com/@hottwrestling?si=Dwp_dPibgoYYucaN" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/x17nqQwd/580b57fcd9996e24bc43c545.png" alt="YT"><span>YT</span></a>
+          <a href="#" class="spot-link" id="spot-tg"><img src="https://i.postimg.cc/8z3NsG2c/5842a8fba6515b1e0ad75b03.png" alt="TG"><span>TG</span></a>
+          <a href="https://www.tiktok.com/@hot_wrestling?_r=1&_t=ZS-966O2yFWxTl" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/FHqN1vMH/613776d7cfd85d00045d1549.png" alt="TT"><span>TT</span></a>
+        </div>
+      </section>
+      <footer class="site-footer">© HOTT WRESTLING · GRAPPLING ISN'T GAY · FEEL THE HEAT</footer>
+    </div>
+
+    <div class="fire-toggle" id="fire-toggle" title="Toggle Music / Slide to adjust volume">🔥</div>
+    <div class="volume-indicator" id="volume-indicator">Vol: 45%</div>
+    <div class="audio-error-toast" id="audio-error-toast">⚠️ Music link broken. Check the MP3/M4A URL.</div>
+
+    <div class="lightbox" id="lightbox">
+      <span class="close-btn" id="close-lightbox">&times;</span>
+      <button class="lightbox-nav-btn prev" id="lightbox-prev">◀</button>
+      <button class="lightbox-nav-btn next" id="lightbox-next">▶</button>
+      <img src="" alt="Hot shot" id="lightbox-img">
+      <div class="lightbox-counter" id="lightbox-counter"></div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const imageUrls = [
+        'https://i.postimg.cc/KvXW1VW5/Tumblr-l-1792805306594327.jpg',
+        'https://i.postimg.cc/dQZXtv5f/Tumblr-l-1792808196196149.jpg',
+        'https://i.postimg.cc/59QGN1sk/Tumblr-l-1792811859715783.jpg',
+        'https://i.postimg.cc/Y2LVqkdD/Tumblr-l-1792814672415886.jpg',
+        'https://i.postimg.cc/Vs0TL1Kg/Tumblr-l-1792828149169318.jpg',
+        'https://i.postimg.cc/WpqKbj5m/Tumblr-l-1792830255130984.jpg',
+        'https://i.postimg.cc/L4g76Rx3/Tumblr-l-1792846813115197.jpg',
+        'https://i.postimg.cc/kMRZX9Tx/Tumblr-l-1792848766114675.jpg',
+        'https://i.postimg.cc/jqn9dKMy/Tumblr-l-1792851822420143.jpg',
+        'https://i.postimg.cc/zDHMX5xK/Tumblr-l-1792859672997171.jpg',
+        'https://i.postimg.cc/ryRbFcf4/Tumblr-l-1792862714632847.jpg',
+        'https://i.postimg.cc/zDHMX5xL/Tumblr-l-1792870888650761.jpg',
+        'https://i.postimg.cc/Df4DyFx8/Tumblr-l-1792924076229751.jpg',
+        'https://i.postimg.cc/Df4DyFxS/Tumblr-l-1792926199619281.jpg',
+        'https://i.postimg.cc/Vs0TL1K5/Tumblr-l-1792928397186780.jpg',
+        'https://i.postimg.cc/WpqKbj53/Tumblr-l-1792972242560201.jpg',
+        'https://i.postimg.cc/BbFwhcjk/Tumblr-l-1792974253854211.jpg',
+        'https://i.postimg.cc/yxRrfXDw/Tumblr-l-1793024902141848.jpg',
+        'https://i.postimg.cc/brnF6HZ7/Tumblr-l-1793097477363070.jpg',
+        'https://i.postimg.cc/cC35DMKy/Tumblr-l-1793099552138902.jpg',
+        'https://i.postimg.cc/d0D6HmXT/FB-IMG-1765660053521.jpg',
+        'https://i.postimg.cc/Gp9K7JN4/FB-IMG-1765660094892.jpg',
+        'https://i.postimg.cc/253GcFJb/FB-IMG-1765772150216.jpg',
+        'https://i.postimg.cc/wjwFQbWL/FB-IMG-1768167252898.jpg',
+        'https://i.postimg.cc/pdyCGY7p/FB-IMG-1768167293986.jpg',
+        'https://i.postimg.cc/dV5njSWC/FB-IMG-1768167326564.jpg',
+        'https://i.postimg.cc/rwfgNYh5/FB-IMG-1773766096767.jpg',
+        'https://i.postimg.cc/pdyCGY7T/FB-IMG-1777061541642.jpg'
+      ];
+      const captions = [
+        'Tension','Contact','Sweat','Panting','Strength','Domination','Submission','Clash','Grip',
+        'Pressure','Friction','Heat','Intense','Forbidden','Taboo','Secret','Desire','Skin',
+        'Ritual','Passion','Friction','Pulse','Gaze','Whisper','Tremble','Ecstasy','Climax','No Escape'
+      ];
+
+      const flareOverlay = document.getElementById('flare-overlay');
+      const fireToggle = document.getElementById('fire-toggle');
+      const volumeIndicator = document.getElementById('volume-indicator');
+      const errorToast = document.getElementById('audio-error-toast');
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightbox-img');
+      const lightboxCounter = document.getElementById('lightbox-counter');
+
+      // Audio
+      const audio = new Audio();
+      audio.src = 'https://archive.org/download/www.ssvid.net-britney-spears-gimme-more-traducida-al-espanol_128kbps/www.ssvid.net--Britney-Spears-Gimme-More-Traducida-al-Espa%C3%B1ol_128kbps.m4a';
+      audio.loop = true;
+      audio.volume = 0.45;
+      audio.muted = false;
+      let audioStarted = false;
+
+      function updateVolumeUI() {
+        volumeIndicator.textContent = `Vol: ${Math.round(audio.volume * 100)}%`;
+      }
+
+      function startAudio() {
+        if (!audioStarted) {
+          audio.play().then(() => {
+            audioStarted = true;
+            fireToggle.classList.add('playing');
+          }).catch(() => {
+            errorToast.style.display = 'block';
+            setTimeout(() => errorToast.style.display = 'none', 5000);
+          });
+        }
+      }
+
+      function pauseAudio() {
+        if (audioStarted) {
+          audio.pause();
+          audioStarted = false;
+          fireToggle.classList.remove('playing');
+        }
+      }
+
+      function toggleMute() {
+        if (!audioStarted) {
+          startAudio();
+        } else {
+          audio.muted = !audio.muted;
+          fireToggle.classList.toggle('playing', !audio.muted);
+        }
+      }
+
+      // Pausar al salir (Telegram y enlaces externos)
+      function handleExternalLink(event, url) {
+        event.preventDefault();
+        pauseAudio();
+        window.open(url, '_blank');
+      }
+
+      document.getElementById('btn-heat-zone').addEventListener('click', (e) => handleExternalLink(e, 'https://t.me/+cmQn3Ljdmnw4M2Nh'));
+      document.getElementById('spot-tg').addEventListener('click', (e) => handleExternalLink(e, 'https://t.me/+cmQn3Ljdmnw4M2Nh'));
+
+      document.querySelectorAll('.external-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          pauseAudio();
+          window.open(link.href, '_blank');
+        });
+      });
+
+      // Pausar si la página pierde el foco
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && audioStarted) {
+          pauseAudio();
+        }
+      });
+
+      // Control táctil del botón de fuego
+      let touchStartY = 0, touchStartVol = 0, isDragging = false, hasMoved = false;
+      fireToggle.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        touchStartY = e.touches[0].clientY;
+        touchStartVol = audio.volume;
+        isDragging = true;
+        hasMoved = false;
+        volumeIndicator.classList.add('show');
+      });
+      fireToggle.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const delta = touchStartY - e.touches[0].clientY;
+        if (Math.abs(delta) > 5) hasMoved = true;
+        let newVol = touchStartVol + delta / 150;
+        newVol = Math.max(0, Math.min(1, newVol));
+        audio.volume = newVol;
+        updateVolumeUI();
+        if (newVol > 0 && audio.muted) {
+          audio.muted = false;
+          fireToggle.classList.add('playing');
+        } else if (newVol === 0) {
+          audio.muted = true;
+          fireToggle.classList.remove('playing');
+        }
+      });
+      fireToggle.addEventListener('touchend', () => {
+        isDragging = false;
+        volumeIndicator.classList.remove('show');
+        if (!hasMoved) toggleMute();
+        hasMoved = false;
+      });
+
+      // Llamarada
+      function triggerFlare() {
+        flareOverlay.classList.add('active');
+        setTimeout(() => flareOverlay.classList.remove('active'), 300);
+      }
+
+      // Lightbox
+      let currentLightboxIndex = 0;
+      function openLightbox(index) {
+        lightboxImg.src = imageUrls[index];
+        lightboxCounter.textContent = `${index + 1} / ${imageUrls.length}`;
+        lightbox.classList.add('active');
+        currentLightboxIndex = index;
+      }
+      function closeLightbox() { lightbox.classList.remove('active'); }
+      document.getElementById('close-lightbox').addEventListener('click', closeLightbox);
+      document.getElementById('lightbox-prev').addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentLightboxIndex = (currentLightboxIndex - 1 + imageUrls.length) % imageUrls.length;
+        lightboxImg.src = imageUrls[currentLightboxIndex];
+        lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${imageUrls.length}`;
+      });
+      document.getElementById('lightbox-next').addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentLightboxIndex = (currentLightboxIndex + 1) % imageUrls.length;
+        lightboxImg.src = imageUrls[currentLightboxIndex];
+        lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${imageUrls.length}`;
+      });
+
+      // Parallax
+      let hasGyro = false, gyroGamma = 0, gyroBeta = 0;
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.alpha !== null) {
+          hasGyro = true;
+          gyroGamma = e.gamma; gyroBeta = e.beta;
+        }
+      });
+      setInterval(() => {
+        if (hasGyro && document.getElementById('main-content').classList.contains('visible')) {
+          const img = document.querySelector('.heat-card.active-heat img');
+          if (img) {
+            const offX = (gyroGamma / 45) * 6;
+            const offY = (gyroBeta / 45) * 6;
+            img.style.transform = `scale(1.08) translate(${offX}px, ${offY}px)`;
+          }
+        }
+      }, 100);
+
+      // Age overlay
+      document.getElementById('btn-enter').addEventListener('click', () => {
+        document.getElementById('age-overlay').classList.add('hidden');
+        document.getElementById('main-content').classList.add('visible');
+        document.body.style.overflow = '';
+        initFireCanvas();
+        initHeatCarousel();
+        startAudio();
+      });
+      document.getElementById('btn-no').addEventListener('click', () => window.location.href = 'about:blank');
+      document.body.style.overflow = 'hidden';
+
+      // Fire canvas
+      function initFireCanvas() {
+        const canvas = document.getElementById('fire-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize);
+        class Ember {
+          constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = canvas.height + Math.random() * 20;
+            this.size = Math.random() * 3 + 1.2;
+            this.speedY = -Math.random() * 1.5 - 0.5;
+            this.speedX = (Math.random() - 0.5) * 0.7;
+            this.opacity = Math.random() * 0.8 + 0.2;
+            this.life = 0; this.maxLife = 100 + Math.random() * 250;
+            this.hue = Math.random() < 0.6 ? 15 : 25;
+          }
+          update() {
+            this.x += this.speedX; this.y += this.speedY; this.life++;
+            this.opacity = Math.max(0, 0.8 * (1 - this.life / this.maxLife));
+            return this.life <= this.maxLife && this.y >= -30;
+          }
+          draw(ctx) {
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+            ctx.fillStyle = `hsla(${this.hue},100%,55%,${this.opacity})`; ctx.fill();
+          }
+        }
+        function animate() {
+          if (document.getElementById('main-content').classList.contains('visible')) {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            if (particles.length < 70 && Math.random() < 0.5) particles.push(new Ember());
+            particles = particles.filter(p => p.update());
+            particles.forEach(p => p.draw(ctx));
+          }
+          requestAnimationFrame(animate);
+        }
+        animate();
+      }
+
+      // Carrusel
+      let heatIndex = 0;
+      function initHeatCarousel() {
+        const track = document.getElementById('heat-track');
+        const dots = document.getElementById('heat-dots');
+        track.innerHTML = ''; dots.innerHTML = '';
+        imageUrls.forEach((url, i) => {
+          const card = document.createElement('div');
+          card.className = 'heat-card' + (i===0?' active-heat':'');
+          card.innerHTML = `<img src="${url}" alt="Pic ${i+1}" loading="lazy"><div class="card-heat">${captions[i]||'Burning'}</div>`;
+          card.addEventListener('click', () => {
+            if (i === heatIndex) openLightbox(i);
+            else goToHeat(i);
+          });
+          track.appendChild(card);
+          const dot = document.createElement('span');
+          dot.className = 'dot' + (i===0?' active':'');
+          dot.addEventListener('click', (e) => { e.stopPropagation(); goToHeat(i); });
+          dots.appendChild(dot);
+        });
+        updateHeatCarousel(0);
+        document.getElementById('heat-prev').addEventListener('click', () => goToHeat((heatIndex-1+imageUrls.length)%imageUrls.length));
+        document.getElementById('heat-next').addEventListener('click', () => goToHeat((heatIndex+1)%imageUrls.length));
+        const wrapper = document.getElementById('heat-wrapper');
+        let startX = 0;
+        wrapper.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
+        wrapper.addEventListener('touchend', e => {
+          const diff = e.changedTouches[0].clientX - startX;
+          if (Math.abs(diff)>30) {
+            diff<0 ? goToHeat((heatIndex+1)%imageUrls.length) : goToHeat((heatIndex-1+imageUrls.length)%imageUrls.length);
+          }
+        });
+      }
+      function goToHeat(i) {
+        if (i === heatIndex) return;
+        heatIndex = ((i % imageUrls.length) + imageUrls.length) % imageUrls.length;
+        updateHeatCarousel(heatIndex);
+        document.querySelectorAll('#heat-dots .dot').forEach((d, idx) => d.classList.toggle('active', idx === heatIndex));
+        triggerFlare();
+        const img = document.querySelector('.heat-card.active-heat img');
+        if (img) img.style.transform = '';
+      }
+      function updateHeatCarousel(activeIdx) {
+        document.querySelectorAll('.heat-card').forEach((card, idx) => {
+          card.classList.toggle('active-heat', idx === activeIdx);
+          if (idx !== activeIdx) {
+            const img = card.querySelector('img');
+            if (img) img.style.transform = '';
+          }
+        });
+        document.getElementById('heat-track').style.transform = `translateX(${-activeIdx*(82+18)+(100-82)/2}%)`;
+      }
+    })();
+  </script>
+</body>
+  </html>
