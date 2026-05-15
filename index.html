@@ -1,320 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>HOTT WRESTLING · Feel the Heat</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    :root {
-      --bg: #0a0303; --heat-glow: #ff4500; --heat-bright: #ff6a1a;
-      --ember: #ff8c42; --text: #ddd; --border: #2a1515;
-    }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'Arial', sans-serif; min-height: 100vh; overflow-x: hidden;
-      -webkit-tap-highlight-color: transparent;
-      background-image: radial-gradient(ellipse at 50% 0%, #2a0f0f 0%, #0a0303 70%);
-    }
-    #app { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; }
-    #fire-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.9; }
-
-    .flare-overlay {
-      position: fixed; inset: 0; pointer-events: none; z-index: 999;
-      background: radial-gradient(ellipse at center, transparent 60%, rgba(255,69,0,0.6) 100%);
-      opacity: 0; transition: opacity 0.15s ease;
-    }
-    .flare-overlay.active { opacity: 1; transition: opacity 0s; }
-
-    .fire-toggle {
-      position: fixed; bottom: 25px; right: 25px; z-index: 1000;
-      width: 55px; height: 55px; border-radius: 50%;
-      background: rgba(20,5,5,0.85); backdrop-filter: blur(10px);
-      border: 2px solid #3a1a1a; color: #555; font-size: 2.2rem;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.7);
-      user-select: none; -webkit-tap-highlight-color: transparent;
-      touch-action: none;
-    }
-    .fire-toggle.playing {
-      border-color: var(--heat-glow); color: var(--heat-bright);
-      background: rgba(30,10,10,0.9);
-      text-shadow: 0 0 20px var(--heat-glow), 0 0 40px var(--heat-bright);
-      box-shadow: 0 0 35px rgba(255,69,0,0.6), 0 0 70px rgba(255,69,0,0.3);
-      animation: fire-pulse 1.8s infinite;
-    }
-    @keyframes fire-pulse {
-      0%,100% { box-shadow: 0 0 25px rgba(255,69,0,0.5), 0 0 50px rgba(255,106,26,0.4); transform: scale(1); }
-      50% { box-shadow: 0 0 45px rgba(255,106,26,0.8), 0 0 80px rgba(255,69,0,0.6); transform: scale(1.1); }
-    }
-    .fire-toggle:active { transform: scale(0.92); }
-
-    .volume-indicator {
-      position: fixed; bottom: 90px; right: 30px; z-index: 1001;
-      background: rgba(0,0,0,0.7); color: var(--ember);
-      font-family: 'Courier New', monospace; font-size: 0.7rem;
-      padding: 0.3rem 0.6rem; border-radius: 12px;
-      opacity: 0; transition: opacity 0.2s; pointer-events: none;
-    }
-    .volume-indicator.show { opacity: 1; }
-
-    #age-overlay {
-      position: fixed; inset: 0; background: #0a0303; z-index: 99999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 1.5rem; transition: opacity 0.5s ease, visibility 0.5s ease;
-      background-image: radial-gradient(circle at 50% 40%, rgba(255,80,0,0.2) 0%, transparent 60%);
-    }
-    #age-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-    #age-overlay h2 {
-      font-family: 'Impact', 'Arial Black', sans-serif; font-size: 2.4rem; color: var(--heat-bright);
-      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.8rem;
-      text-shadow: 0 0 40px var(--heat-glow); animation: flicker-text 1.8s infinite;
-    }
-    @keyframes flicker-text {
-      0%,100% { text-shadow: 0 0 40px var(--heat-glow), 0 0 80px rgba(255,69,0,0.6); }
-      50% { text-shadow: 0 0 60px var(--heat-bright), 0 0 100px rgba(255,106,26,0.8); }
-    }
-    #age-overlay .sub { color: #ccc; font-size: 0.9rem; margin-bottom: 2.2rem; max-width: 280px; font-style: italic; }
-    #age-overlay .btn-enter {
-      background: rgba(255,69,0,0.1); border: 2px solid var(--heat-glow); color: var(--heat-bright);
-      padding: 1rem 2.5rem; font-family: 'Impact', sans-serif; font-size: 1.1rem; text-transform: uppercase;
-      cursor: pointer; border-radius: 4px; transition: 0.3s; box-shadow: 0 0 25px rgba(255,69,0,0.3);
-    }
-    #age-overlay .btn-enter:active { background: var(--heat-glow); color: #fff; transform: scale(0.96); }
-    #age-overlay .btn-no {
-      background: transparent; border: 1px solid #553333; color: #997777; padding: 0.5rem 1.5rem;
-      cursor: pointer; margin-top: 1rem; border-radius: 4px; font-size: 0.8rem;
-    }
-
-    #main-content { opacity: 0; transition: opacity 0.7s 0.3s; width: 100%; position: relative; z-index: 1; }
-    #main-content.visible { opacity: 1; }
-
-    .hero {
-      padding: 2.5rem 1.5rem 2rem; text-align: center; border-bottom: 1px solid #3a1a1a;
-      background: linear-gradient(to bottom, rgba(40,10,10,0.7), transparent);
-    }
-    .hero h1 {
-      font-family: 'Impact', sans-serif; font-size: 2.8rem; color: #fff; text-transform: uppercase;
-      text-shadow: 0 0 50px rgba(255,69,0,0.7);
-    }
-    .hero h1 .hot { color: var(--heat-bright); text-shadow: 0 0 60px var(--heat-glow); }
-    .hero .tagline { font-family: 'Courier New', monospace; color: #dd9966; font-size: 0.75rem; }
-
-    .heat-zone {
-      padding: 2.5rem 1.5rem; text-align: center; background: #140505; border-bottom: 1px solid #3a1a1a;
-      position: relative; overflow: hidden;
-    }
-    .heat-zone::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 40%, rgba(255,80,0,0.2) 0%, transparent 65%);
-      animation: zone-glow 3s infinite;
-    }
-    @keyframes zone-glow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-    .zone-label {
-      font-family: 'Courier New', monospace; color: #dd7744; font-size: 0.7rem; letter-spacing: 0.25em;
-      margin-bottom: 1.5rem; position: relative; z-index: 1;
-    }
-    .btn-heat-zone {
-      display: inline-flex; align-items: center; gap: 0.6rem;
-      background: rgba(30,10,10,0.9); border: 2px solid var(--heat-glow); color: #fff;
-      padding: 1rem 2.8rem; font-family: 'Impact', sans-serif; font-size: 1.2rem;
-      text-transform: uppercase; text-decoration: none; cursor: pointer; border-radius: 4px;
-      box-shadow: 0 0 40px rgba(255,69,0,0.3); animation: border-flicker 2s infinite;
-      transition: 0.4s; position: relative; z-index: 1;
-    }
-    .btn-heat-zone:active { background: var(--heat-glow); color: #000; transform: scale(0.97); }
-    .btn-heat-zone .tg-icon { width: 34px; height: 34px; filter: drop-shadow(0 0 10px #ff4500); }
-    .zone-hint {
-      margin-top: 1rem; color: var(--ember); font-size: 0.7rem; font-family: 'Courier New', monospace;
-      font-style: italic; position: relative; z-index: 1;
-    }
-
-    .carousel-section { padding: 2.5rem 0 2rem; background: #0f0303; border-bottom: 1px solid #3a1a1a; text-align: center; }
-    .carousel-title {
-      font-family: 'Impact', sans-serif; font-size: 1.3rem; color: var(--ember); letter-spacing: 0.15em;
-      margin-bottom: 1.5rem; text-shadow: 0 0 15px rgba(255,69,0,0.4);
-    }
-    .heat-carousel-wrapper { position: relative; max-width: 340px; margin: 0 auto; height: 400px; overflow: hidden; touch-action: pan-y; }
-    .heat-carousel-track { display: flex; align-items: center; height: 100%; transition: transform 0.5s; }
-    .heat-card {
-      flex: 0 0 82%; margin: 0 9%; height: 92%; border-radius: 6px; overflow: hidden;
-      background: #200a0a; border: 2px solid #4a2020; box-shadow: 0 8px 30px rgba(0,0,0,0.7);
-      transition: all 0.4s ease; cursor: pointer; position: relative;
-    }
-    .heat-card.active-heat {
-      border-color: var(--heat-glow); box-shadow: 0 0 40px rgba(255,69,0,0.5), 0 0 80px rgba(255,80,0,0.2);
-      transform: scale(1.03);
-    }
-    .heat-card img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
-      transition: transform 0.6s ease, filter 0.4s ease; will-change: transform;
-    }
-    .heat-card.active-heat img { filter: brightness(1.1) contrast(1.1) saturate(1.3); }
-    .card-heat {
-      position: absolute; bottom: 0; left: 0; right: 0; padding: 0.7rem;
-      background: linear-gradient(transparent, rgba(255,30,0,0.4)); color: #fff;
-      font-family: 'Courier New', monospace; font-size: 0.7rem; text-align: center;
-      opacity: 0; transition: 0.35s; text-shadow: 0 0 15px rgba(255,69,0,0.9); pointer-events: none;
-    }
-    .heat-card.active-heat .card-heat { opacity: 1; }
-
-    .heat-controls { display: flex; justify-content: center; gap: 1.2rem; margin-top: 1.2rem; }
-    .heat-controls button {
-      background: transparent; border: 2px solid #4a2a2a; color: #dd8866;
-      width: 42px; height: 42px; border-radius: 50%; font-size: 1.3rem; cursor: pointer;
-      transition: 0.3s;
-    }
-    .heat-controls button:active { border-color: var(--heat-glow); color: #fff; box-shadow: 0 0 20px rgba(255,69,0,0.5); }
-    .heat-dots { display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.8rem; }
-    .heat-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #442222; transition: 0.3s; cursor: pointer; }
-    .heat-dots .dot.active { background: var(--heat-bright); box-shadow: 0 0 15px var(--heat-glow); transform: scale(1.5); }
-
-    .hot-spots-section { padding: 2.5rem 1.5rem; background: #140505; text-align: center; border-bottom: 1px solid #3a1a1a; }
-    .spots-title { font-family: 'Impact', sans-serif; font-size: 1rem; color: var(--ember); margin-bottom: 2rem; text-shadow: 0 0 10px rgba(255,69,0,0.3); }
-    .spots-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; max-width: 400px; margin: 0 auto; }
-    .spot-link {
-      display: flex; flex-direction: column; align-items: center; gap: 0.4rem; width: 68px;
-      padding: 0.9rem 0.3rem; background: #1a0a0a; border: 1px solid #4a2020; border-radius: 4px;
-      text-decoration: none; transition: 0.3s;
-    }
-    .spot-link img { width: 28px; height: 28px; object-fit: contain; opacity: 0.8; filter: drop-shadow(0 0 4px rgba(255,100,0,0.4)); }
-    .spot-link span { font-family: 'Impact', sans-serif; font-size: 0.55rem; color: #cc8866; }
-    .spot-link:active { border-color: var(--heat-glow); background: #2a0f0f; box-shadow: 0 0 20px rgba(255,69,0,0.3); }
-    .spot-link:active img { opacity: 1; filter: drop-shadow(0 0 10px #ff4500); }
-
-    .site-footer {
-      text-align: center; padding: 2rem; color: #553333; font-size: 0.6rem;
-      font-family: 'Courier New', monospace; background: #0a0303; border-top: 1px solid #2a1515;
-    }
-
-    .lightbox {
-      position: fixed; inset: 0; background: rgba(5,1,1,0.97); z-index: 99990;
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; visibility: hidden; transition: 0.35s ease; backdrop-filter: blur(12px);
-    }
-    .lightbox.active { opacity: 1; visibility: visible; }
-    .lightbox img { max-width: 92vw; max-height: 82vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 60px rgba(0,0,0,0.9); border: 2px solid #3a1a1a; }
-    .lightbox .close-btn { position: absolute; top: 18px; right: 18px; font-size: 2rem; color: #ccaa88; cursor: pointer; z-index: 10; background: rgba(0,0,0,0.6); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-    .lightbox-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); font-size: 2.2rem; color: #ccaa88; cursor: pointer; z-index: 10; background: rgba(0,0,0,0.5); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; }
-    .lightbox-nav-btn.prev { left: 10px; } .lightbox-nav-btn.next { right: 10px; }
-    .lightbox-counter { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); color: #998877; font-family: 'Courier New', monospace; font-size: 0.7rem; letter-spacing: 0.15em; background: rgba(0,0,0,0.5); padding: 0.3rem 1rem; border-radius: 20px; }
-
-    .audio-error-toast { position: fixed; bottom: 90px; right: 25px; background: #1a0000; color: #ff6a1a; border: 1px solid #ff4500; padding: 0.6rem 1rem; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.7rem; z-index: 1001; box-shadow: 0 0 20px rgba(255,69,0,0.4); display: none; max-width: 250px; }
-  </style>
-</head>
-<body>
-  <div id="app">
-    <canvas id="fire-canvas"></canvas>
-    <div class="flare-overlay" id="flare-overlay"></div>
-
-    <div id="age-overlay">
-      <h2>CAN YOU TAKE THE HEAT?</h2>
-      <p class="sub">Adult content. 18+ only.<br>Things are about to get very hot.</p>
-      <button class="btn-enter" id="btn-enter">I'M 18+ · WARM ME UP</button>
-      <button class="btn-no" id="btn-no">Leave</button>
-    </div>
-
-    <div id="main-content">
-      <section class="hero">
-        <h1><span class="hot">HOT</span> WRESTLING</h1>
-        <p class="tagline">WHERE THE HEAT RISES</p>
-      </section>
-      <section class="heat-zone">
-        <p class="zone-label">The Hottest Room</p>
-        <a href="#" class="btn-heat-zone" id="btn-heat-zone">
-          <img src="https://i.postimg.cc/8z3NsG2c/5842a8fba6515b1e0ad75b03.png" alt="Telegram" class="tg-icon">
-          Turn Up the Heat
-        </a>
-        <p class="zone-hint">Private channel · Uncensored · Temperature rising</p>
-      </section>
-      <section class="carousel-section">
-        <h2 class="carousel-title">Scorching Moments</h2>
-        <div class="heat-carousel-wrapper" id="heat-wrapper">
-          <div class="heat-carousel-track" id="heat-track"></div>
-        </div>
-        <div class="heat-controls">
-          <button id="heat-prev">◀</button>
-          <button id="heat-next">▶</button>
-        </div>
-        <div class="heat-dots" id="heat-dots"></div>
-      </section>
-      <section class="hot-spots-section">
-        <h3 class="spots-title">Other Hot Spots</h3>
-        <div class="spots-grid">
-          <a href="https://www.facebook.com/share/1K1tch2Yzg/" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/G3YQ5j39/584ac2d03ac3a570f94a666d.png" alt="FB"><span>FB</span></a>
-          <a href="https://www.instagram.com/hott_wrestling?igsh=MWF6bjQ4bG1uYjdvMw==" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/JzgMt8ft/580b57fcd9996e24bc43c521.png" alt="IG"><span>IG</span></a>
-          <a href="https://youtube.com/@hottwrestling?si=Dwp_dPibgoYYucaN" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/x17nqQwd/580b57fcd9996e24bc43c545.png" alt="YT"><span>YT</span></a>
-          <a href="#" class="spot-link" id="spot-tg"><img src="https://i.postimg.cc/8z3NsG2c/5842a8fba6515b1e0ad75b03.png" alt="TG"><span>TG</span></a>
-          <a href="https://www.tiktok.com/@hot_wrestling?_r=1&_t=ZS-966O2yFWxTl" target="_blank" class="spot-link external-link"><img src="https://i.postimg.cc/FHqN1vMH/613776d7cfd85d00045d1549.png" alt="TT"><span>TT</span></a>
-        </div>
-      </section>
-      <footer class="site-footer">© HOTT WRESTLING · GRAPPLING ISN'T GAY · FEEL THE HEAT</footer>
-    </div>
-
-    <div class="fire-toggle" id="fire-toggle" title="Toggle Music / Slide to adjust volume">🔥</div>
-    <div class="volume-indicator" id="volume-indicator">Vol: 45%</div>
-    <div class="audio-error-toast" id="audio-error-toast">⚠️ Music link broken. Check the MP3/M4A URL.</div>
-
-    <div class="lightbox" id="lightbox">
-      <span class="close-btn" id="close-lightbox">&times;</span>
-      <button class="lightbox-nav-btn prev" id="lightbox-prev">◀</button>
-      <button class="lightbox-nav-btn next" id="lightbox-next">▶</button>
-      <img src="" alt="Hot shot" id="lightbox-img">
-      <div class="lightbox-counter" id="lightbox-counter"></div>
-    </div>
-  </div>
-
-  <script>
-    (function() {
-      const imageUrls = [
-        'https://i.postimg.cc/KvXW1VW5/Tumblr-l-1792805306594327.jpg',
-        'https://i.postimg.cc/dQZXtv5f/Tumblr-l-1792808196196149.jpg',
-        'https://i.postimg.cc/59QGN1sk/Tumblr-l-1792811859715783.jpg',
-        'https://i.postimg.cc/Y2LVqkdD/Tumblr-l-1792814672415886.jpg',
-        'https://i.postimg.cc/Vs0TL1Kg/Tumblr-l-1792828149169318.jpg',
-        'https://i.postimg.cc/WpqKbj5m/Tumblr-l-1792830255130984.jpg',
-        'https://i.postimg.cc/L4g76Rx3/Tumblr-l-1792846813115197.jpg',
-        'https://i.postimg.cc/kMRZX9Tx/Tumblr-l-1792848766114675.jpg',
-        'https://i.postimg.cc/jqn9dKMy/Tumblr-l-1792851822420143.jpg',
-        'https://i.postimg.cc/zDHMX5xK/Tumblr-l-1792859672997171.jpg',
-        'https://i.postimg.cc/ryRbFcf4/Tumblr-l-1792862714632847.jpg',
-        'https://i.postimg.cc/zDHMX5xL/Tumblr-l-1792870888650761.jpg',
-        'https://i.postimg.cc/Df4DyFx8/Tumblr-l-1792924076229751.jpg',
-        'https://i.postimg.cc/Df4DyFxS/Tumblr-l-1792926199619281.jpg',
-        'https://i.postimg.cc/Vs0TL1K5/Tumblr-l-1792928397186780.jpg',
-        'https://i.postimg.cc/WpqKbj53/Tumblr-l-1792972242560201.jpg',
-        'https://i.postimg.cc/BbFwhcjk/Tumblr-l-1792974253854211.jpg',
-        'https://i.postimg.cc/yxRrfXDw/Tumblr-l-1793024902141848.jpg',
-        'https://i.postimg.cc/brnF6HZ7/Tumblr-l-1793097477363070.jpg',
-        'https://i.postimg.cc/cC35DMKy/Tumblr-l-1793099552138902.jpg',
-        'https://i.postimg.cc/d0D6HmXT/FB-IMG-1765660053521.jpg',
-        'https://i.postimg.cc/Gp9K7JN4/FB-IMG-1765660094892.jpg',
-        'https://i.postimg.cc/253GcFJb/FB-IMG-1765772150216.jpg',
-        'https://i.postimg.cc/wjwFQbWL/FB-IMG-1768167252898.jpg',
-        'https://i.postimg.cc/pdyCGY7p/FB-IMG-1768167293986.jpg',
-        'https://i.postimg.cc/dV5njSWC/FB-IMG-1768167326564.jpg',
-        'https://i.postimg.cc/rwfgNYh5/FB-IMG-1773766096767.jpg',
-        'https://i.postimg.cc/pdyCGY7T/FB-IMG-1777061541642.jpg'
-      ];
-      const captions = [
-        'Tension','Contact','Sweat','Panting','Strength','Domination','Submission','Clash','Grip',
-        'Pressure','Friction','Heat','Intense','Forbidden','Taboo','Secret','Desire','Skin',
-        'Ritual','Passion','Friction','Pulse','Gaze','Whisper','Tremble','Ecstasy','Climax','No Escape'
-      ];
-
-      const flareOverlay = document.getElementById('flare-overlay');
-      const fireToggle = document.getElementById('fire-toggle');
-      const volumeIndicator = document.getElementById('volume-indicator');
-      const errorToast = document.getElementById('audio-error-toast');
-      const lightbox = document.getElementById('lightbox');
-      const lightboxImg = document.getElementById('lightbox-img');
-      const lightboxCounter = document.getElementById('lightbox-counter');
-
-      // Audio
-      const audio = new Audio();
-      audio.src = 'https://archive.org/download/www.ssvid.net-britney-spears-gimme-more-traducida-al-espanol_128kbps/www.ssvid.net--Britney-Spears-Gimme-More-Traducida-al-Espa%C3%B1ol_128kbps.m4a';
+Spears-Gimme-More-Traducida-al-Espa%C3%B1ol_128kbps.m4a';
       audio.loop = true;
       audio.volume = 0.45;
       audio.muted = false;
@@ -570,3 +254,1209 @@
   <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "851c8b84ce124a1483e503e7117a9936"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
   </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>HOTT WRESTLING · Feel the Heat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23FF4500'/><text y='.85em' font-size='60' fill='white' font-family='Impact' text-anchor='middle' x='50'>HW</text></svg>">
+
+  <style>
+    /* === index.css === */
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    :root {
+      --bg:          #080505;
+      --surface:     #100808;
+      --fire-orange: #FF4500;
+      --fire-yellow: #FFB800;
+      --fire-red:    #CC1100;
+      --text:        #F0EAE0;
+      --text-dim:    #8a7060;
+      --border:      #2a1010;
+      --radius:      14px;
+      --font-d:      'Bebas Neue', 'Impact', sans-serif;
+      --font-b:      'DM Sans', 'Arial', sans-serif;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-b);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── CANVAS BRASAS ── */
+    #fire-canvas {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0; opacity: 0.85;
+    }
+
+    /* ── FLARE OVERLAY ── */
+    .flare-overlay {
+      position: fixed; inset: 0; pointer-events: none; z-index: 999;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(255,69,0,0.55) 100%);
+      opacity: 0; transition: opacity 0.12s ease;
+    }
+    .flare-overlay.active { opacity: 1; transition: opacity 0s; }
+
+    /* ── AGE GATE ── */
+    #age-overlay {
+      position: fixed; inset: 0; z-index: 99999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 2rem;
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 50% 60%, rgba(255,69,0,0.18) 0%, transparent 65%);
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #age-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .age-logo {
+      font-family: var(--font-d);
+      font-size: clamp(2.8rem, 13vw, 5rem);
+      color: #fff;
+      letter-spacing: 0.04em;
+      line-height: 0.9;
+      text-shadow: 0 0 40px rgba(255,100,0,0.4);
+      margin-bottom: 0.3rem;
+    }
+    .age-logo .acc {
+      display: block;
+      background: linear-gradient(135deg, var(--fire-yellow), var(--fire-orange), var(--fire-red));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      filter: drop-shadow(0 0 18px rgba(255,100,0,0.7));
+      animation: flicker 2.5s ease-in-out infinite;
+    }
+    @keyframes flicker {
+      0%,100% { filter: drop-shadow(0 0 18px rgba(255,100,0,0.7)); }
+      40%      { filter: drop-shadow(0 0 32px rgba(255,180,0,0.9)); }
+      70%      { filter: drop-shadow(0 0 12px rgba(204,17,0,0.8)); }
+    }
+
+    .age-divider {
+      width: 60px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--fire-orange), transparent);
+      margin: 1rem auto;
+      animation: divpulse 2s ease-in-out infinite;
+    }
+    @keyframes divpulse {
+      0%,100% { width:60px; opacity:0.5; }
+      50%      { width:100px; opacity:1; }
+    }
+
+    .age-sub {
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+      max-width: 260px;
+      line-height: 1.6;
+    }
+
+    .btn-enter {
+      background: rgba(255,69,0,0.08);
+      border: 2px solid var(--fire-orange);
+      color: var(--fire-yellow);
+      padding: 1rem 2.8rem;
+      font-family: var(--font-d);
+      font-size: 1.2rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 6px;
+      box-shadow: 0 0 30px rgba(255,69,0,0.25);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-enter::before {
+      content: '';
+      position: absolute; inset: -2px;
+      border-radius: 8px;
+      background: conic-gradient(from var(--angle), transparent 0deg, var(--fire-red) 30deg, var(--fire-orange) 60deg, var(--fire-yellow) 80deg, transparent 110deg, transparent 360deg);
+      animation: borderTrace 2s linear infinite;
+      z-index: -1;
+    }
+    .btn-enter::after {
+      content: '';
+      position: absolute; inset: 1px;
+      border-radius: 5px;
+      background: rgba(8,5,5,0.9);
+      z-index: -1;
+    }
+    @keyframes borderTrace { to { --angle: 360deg; } }
+    .btn-enter:active { transform: scale(0.96); background: rgba(255,69,0,0.2); }
+
+    .btn-no {
+      background: transparent;
+      border: 1px solid #3a1818;
+      color: #664444;
+      padding: 0.5rem 1.5rem;
+      margin-top: 1rem;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-family: var(--font-b);
+      transition: color 0.2s;
+    }
+    .btn-no:active { color: #aa6666; }
+
+    /* ── MAIN CONTENT ── */
+    #main-content {
+      opacity: 0;
+      transition: opacity 0.8s 0.2s ease;
+      position: relative; z-index: 1;
+      width: 100%;
+    }
+    #main-content.visible { opacity: 1; }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 3rem 1.5rem 2.5rem;
+      text-align: center;
+      position: relative;
+      border-bottom: 1px solid rgba(255,69,0,0.1);
+      background: linear-gradient(to bottom, rgba(30,8,8,0.6) 0%, transparent 100%);
+    }
+    .hero-eyebrow {
+      font-family: var(--font-b);
+      font-size: 0.6rem;
+      letter-spacing: 0.45em;
+      color: var(--fire-orange);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      opacity: 0.7;
+    }
+    .hero h1 {
+      font-family: var(--font-d);
+      font-size: clamp(3.2rem, 14vw, 5.5rem);
+      color: #fff;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      line-height: 0.9;
+      text-shadow: 0 0 40px rgba(255,100,0,0.3);
+    }
+    .hero h1 .acc {
+      display: block;
+      background: linear-gradient(135deg, var(--fire-yellow) 0%, var(--fire-orange) 50%, var(--fire-red) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      filter: drop-shadow(0 0 20px rgba(255,100,0,0.6));
+      animation: flicker 3s ease-in-out infinite;
+    }
+    .hero-tag {
+      font-family: var(--font-b);
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-top: 0.7rem;
+    }
+
+    /* ── TELEGRAM HERO SECTION ── */
+    .tg-hero {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(to bottom, rgba(8,5,5,0) 0%, rgba(16,4,4,0.85) 50%, rgba(8,5,5,0) 100%);
+    }
+
+    /* Glow radial detrás */
+    .tg-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, rgba(255,69,0,0.12) 0%, transparent 65%);
+      animation: zoneglow 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes zoneglow { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+
+    .tg-label {
+      font-family: var(--font-b);
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      color: var(--fire-orange);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      opacity: 0.75;
+      position: relative;
+    }
+
+    /* Gran botón Telegram */
+    .btn-tg-main {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .tg-circle {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: rgba(16,8,8,0.85);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+      box-shadow:
+        0 0 0 1px rgba(255,69,0,0.3),
+        0 0 30px rgba(255,69,0,0.2),
+        0 0 60px rgba(255,69,0,0.08);
+    }
+
+    /* Fire ring animado alrededor del círculo */
+    .tg-circle::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from var(--angle),
+        transparent 0deg,
+        var(--fire-red) 25deg,
+        var(--fire-orange) 55deg,
+        var(--fire-yellow) 80deg,
+        transparent 105deg,
+        transparent 360deg
+      );
+      animation: borderTrace 1.8s linear infinite;
+      z-index: -1;
+    }
+    .tg-circle::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: rgba(16,8,8,0.95);
+      z-index: -1;
+    }
+
+    .tg-circle img {
+      width: 52px; height: 52px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 12px rgba(255,100,0,0.6)) brightness(1.1);
+      position: relative; z-index: 1;
+    }
+
+    .btn-tg-main:active .tg-circle { transform: scale(0.94); }
+
+    .tg-cta-text {
+      font-family: var(--font-d);
+      font-size: 1.3rem;
+      color: #fff;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(255,100,0,0.4);
+    }
+    .tg-cta-sub {
+      font-family: var(--font-b);
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* Texto de acceso */
+    .tg-access-note {
+      font-family: var(--font-b);
+      font-size: 0.7rem;
+      color: var(--fire-orange);
+      letter-spacing: 0.15em;
+      opacity: 0.8;
+      font-style: italic;
+    }
+
+    /* ── SEPARADOR CON FUEGO ── */
+    .fire-sep {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0 1.5rem;
+      margin: 0.5rem 0;
+      opacity: 0.4;
+    }
+    .fire-sep::before, .fire-sep::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--fire-orange), transparent);
+    }
+    .fire-sep span {
+      font-family: var(--font-d);
+      font-size: 0.7rem;
+      color: var(--fire-orange);
+      letter-spacing: 0.3em;
+    }
+
+    /* ── CARRUSEL STACK 3D ── */
+    .carousel-section {
+      padding: 2.5rem 0 2.5rem;
+      background: rgba(10,3,3,0.6);
+      border-top: 1px solid rgba(255,69,0,0.08);
+      border-bottom: 1px solid rgba(255,69,0,0.08);
+      text-align: center;
+    }
+    .carousel-title {
+      font-family: var(--font-d);
+      font-size: 1.2rem;
+      color: var(--fire-orange);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+      text-shadow: 0 0 15px rgba(255,69,0,0.3);
+    }
+    .carousel-hint {
+      font-family: var(--font-b);
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      margin-bottom: 1.8rem;
+      text-transform: uppercase;
+    }
+
+    /* Stack stage — perspectiva 3D */
+    .stack-stage {
+      perspective: 900px;
+      perspective-origin: 50% 45%;
+      position: relative;
+      width: 260px;
+      height: 360px;
+      margin: 0 auto;
+      touch-action: pan-y;
+    }
+
+    /* Cada carta vive en posición absoluta dentro del stage */
+    .stack-card {
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transform-origin: center bottom;
+      will-change: transform, opacity;
+      transition:
+        transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity   0.45s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.4s ease;
+      border: 1px solid #3a1818;
+      background: #120505;
+    }
+
+    /* Estado: frente (activa) */
+    .stack-card.s-active {
+      transform: translateZ(0px) translateY(0px) rotateX(0deg) scale(1);
+      opacity: 1;
+      z-index: 10;
+      border-color: transparent;
+      box-shadow:
+        0 0 0 1.5px var(--fire-orange),
+        0 12px 50px rgba(255,69,0,0.4),
+        0 0 80px rgba(255,100,0,0.15);
+    }
+
+    /* Fire border trace en la carta activa */
+    .stack-card.s-active::before {
+      content: '';
+      position: absolute; inset: -2px;
+      border-radius: 14px;
+      background: conic-gradient(
+        from var(--angle),
+        transparent 0deg,
+        var(--fire-red) 20deg,
+        var(--fire-orange) 50deg,
+        var(--fire-yellow) 75deg,
+        transparent 100deg,
+        transparent 360deg
+      );
+      animation: borderTrace 2s linear infinite;
+      z-index: 0;
+    }
+    .stack-card.s-active::after {
+      content: ''; position: absolute; inset: 1px;
+      border-radius: 11px;
+      background: #120505;
+      z-index: 1;
+    }
+    .stack-card.s-active img  { filter: brightness(1.1) contrast(1.08) saturate(1.2); }
+    .stack-card.s-active .card-caption { opacity: 1; }
+
+    /* Estado: segunda carta (detrás, ligeramente visible) */
+    .stack-card.s-behind1 {
+      transform: translateZ(-55px) translateY(18px) rotateX(6deg) scale(0.92);
+      opacity: 0.65;
+      z-index: 7;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.7);
+    }
+
+    /* Estado: tercera carta */
+    .stack-card.s-behind2 {
+      transform: translateZ(-105px) translateY(34px) rotateX(11deg) scale(0.84);
+      opacity: 0.35;
+      z-index: 5;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+
+    /* El resto están escondidas */
+    .stack-card.s-hidden {
+      transform: translateZ(-160px) translateY(50px) rotateX(16deg) scale(0.75);
+      opacity: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Animación de salida hacia la izquierda */
+    .stack-card.s-exit-left {
+      transform: translateX(-110%) translateY(-20px) rotateZ(-18deg) scale(0.8);
+      opacity: 0;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    /* Animación de entrada desde la derecha */
+    .stack-card.s-enter-right {
+      transform: translateX(110%) translateY(-20px) rotateZ(18deg) scale(0.8);
+      opacity: 0;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    .stack-card img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      position: relative; z-index: 2;
+      transition: filter 0.4s ease;
+    }
+
+    .card-caption {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 1.2rem 1rem 0.8rem;
+      background: linear-gradient(transparent, rgba(5,1,1,0.85));
+      color: #fff;
+      font-family: var(--font-d);
+      font-size: 1rem;
+      letter-spacing: 0.18em;
+      text-align: center;
+      text-shadow: 0 0 15px rgba(255,69,0,0.6);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* Counter badge */
+    .stack-counter {
+      font-family: var(--font-b);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      margin-top: 1rem;
+      margin-bottom: 0.8rem;
+    }
+    .stack-counter span {
+      color: var(--fire-orange);
+      font-weight: 600;
+    }
+
+    /* Controles debajo */
+    .heat-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+      margin-top: 0.5rem;
+    }
+    .heat-controls button {
+      background: rgba(16,8,8,0.75);
+      border: 1px solid #3a1a1a;
+      color: var(--text-dim);
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .heat-controls button:active {
+      border-color: var(--fire-orange);
+      color: var(--fire-yellow);
+      box-shadow: 0 0 18px rgba(255,69,0,0.4);
+      transform: scale(0.93);
+    }
+
+    /* Dots compactos */
+    .heat-dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.35rem;
+      margin-top: 0.9rem;
+      flex-wrap: wrap;
+      padding: 0 1.5rem;
+    }
+    .heat-dots .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #3a1818;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .heat-dots .dot.active {
+      background: var(--fire-orange);
+      box-shadow: 0 0 7px rgba(255,69,0,0.7);
+      transform: scale(1.6);
+    }
+
+    /* ── SOCIAL SPOTS ── */
+    .spots-section {
+      padding: 2.5rem 1.5rem 2rem;
+      text-align: center;
+      background: rgba(10,3,3,0.4);
+      border-bottom: 1px solid rgba(255,69,0,0.08);
+    }
+    .spots-title {
+      font-family: var(--font-d);
+      font-size: 1rem;
+      color: var(--fire-orange);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1.8rem;
+      opacity: 0.8;
+    }
+    .spots-grid {
+      display: flex;
+      justify-content: center;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      max-width: 380px;
+      margin: 0 auto;
+    }
+    .spot-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      width: 64px;
+      padding: 0.9rem 0.3rem;
+      background: rgba(16,8,8,0.7);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    .spot-link img {
+      width: 26px; height: 26px;
+      object-fit: contain;
+      opacity: 0.75;
+      filter: drop-shadow(0 0 4px rgba(255,100,0,0.3));
+      transition: all 0.3s ease;
+    }
+    .spot-link span {
+      font-family: var(--font-d);
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+    .spot-link:active {
+      border-color: var(--fire-orange);
+      background: rgba(255,69,0,0.1);
+      box-shadow: 0 0 18px rgba(255,69,0,0.25);
+      transform: scale(0.96);
+    }
+    .spot-link:active img { opacity: 1; filter: drop-shadow(0 0 8px var(--fire-orange)); }
+    .spot-link:active span { color: var(--fire-yellow); }
+
+    /* TG destacado en spots */
+    .spot-link.spot-tg {
+      border-color: rgba(255,69,0,0.3);
+      background: rgba(255,69,0,0.07);
+    }
+    .spot-link.spot-tg span { color: var(--fire-orange); }
+    .spot-link.spot-tg img { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,100,0,0.5)); }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      text-align: center;
+      padding: 2rem 1rem 3rem;
+      color: #3a1818;
+      font-size: 0.58rem;
+      letter-spacing: 0.3em;
+      font-family: var(--font-b);
+      text-transform: uppercase;
+      border-top: 1px solid rgba(255,69,0,0.07);
+    }
+
+    /* ── MUSIC TOGGLE ── */
+    .music-btn {
+      position: fixed;
+      bottom: 25px; right: 20px;
+      z-index: 1000;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: rgba(16,8,8,0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid #3a1a1a;
+      color: #4a2a2a;
+      font-size: 1.4rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      user-select: none;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .music-btn.playing {
+      border-color: var(--fire-orange);
+      color: var(--fire-yellow);
+      box-shadow: 0 0 30px rgba(255,69,0,0.5), 0 0 60px rgba(255,69,0,0.2);
+      animation: musicpulse 1.8s ease-in-out infinite;
+    }
+    @keyframes musicpulse {
+      0%,100% { box-shadow: 0 0 22px rgba(255,69,0,0.4), 0 0 45px rgba(255,69,0,0.2); transform: scale(1); }
+      50%      { box-shadow: 0 0 40px rgba(255,120,0,0.7), 0 0 80px rgba(255,69,0,0.4); transform: scale(1.08); }
+    }
+    .music-btn:active { transform: scale(0.9) !important; }
+
+    /* Nota musical SVG inline */
+    .music-icon { width: 22px; height: 22px; fill: currentColor; }
+
+    /* Vol indicator */
+    .vol-pill {
+      position: fixed;
+      bottom: 84px; right: 20px;
+      z-index: 1001;
+      background: rgba(0,0,0,0.75);
+      color: var(--fire-yellow);
+      font-family: var(--font-b);
+      font-size: 0.65rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      letter-spacing: 0.05em;
+    }
+    .vol-pill.show { opacity: 1; }
+
+    /* ── LIGHTBOX ── */
+    .lightbox {
+      position: fixed; inset: 0;
+      background: rgba(4,1,1,0.97);
+      z-index: 99990;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(14px);
+    }
+    .lightbox.active { opacity: 1; visibility: visible; }
+    .lightbox img {
+      max-width: 92vw; max-height: 82vh;
+      object-fit: contain; border-radius: 8px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.9);
+      border: 1px solid rgba(255,69,0,0.2);
+    }
+    .lb-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: #ccaa88; cursor: pointer; z-index: 10;
+      border: 1px solid #3a1a1a;
+    }
+    .lb-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; color: #ccaa88; cursor: pointer; z-index: 10;
+      border: none; transition: all 0.25s ease;
+    }
+    .lb-nav:active { background: rgba(255,69,0,0.3); color: #fff; }
+    .lb-prev { left: 10px; }
+    .lb-next { right: 10px; }
+    .lb-count {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      color: #887766; font-family: var(--font-b); font-size: 0.68rem;
+      letter-spacing: 0.2em; background: rgba(0,0,0,0.5);
+      padding: 0.3rem 1rem; border-radius: 20px;
+    }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1), transform 0.55s cubic-bezier(0.16,1,0.3,1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── AUDIO ERROR ── */
+    .audio-toast {
+      position: fixed; bottom: 84px; right: 20px;
+      background: rgba(20,0,0,0.9); color: var(--fire-orange);
+      border: 1px solid var(--fire-red); padding: 0.6rem 1rem;
+      border-radius: 8px; font-family: var(--font-b); font-size: 0.7rem;
+      z-index: 1001; display: none; max-width: 240px;
+      box-shadow: 0 0 20px rgba(255,69,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CANVAS -->
+  <canvas id="fire-canvas"></canvas>
+  <div class="flare-overlay" id="flare-overlay"></div>
+
+  <!-- AGE GATE -->
+  <div id="age-overlay">
+    <div class="age-logo">
+      HOTT
+      <span class="acc">WRESTLING</span>
+    </div>
+    <div class="age-divider"></div>
+    <p class="age-sub">Adult content &middot; 18+ only<br>Things are about to get very hot</p>
+    <button class="btn-enter" id="btn-enter">I'M 18+ &middot; WARM ME UP</button>
+    <button class="btn-no" id="btn-no">Leave</button>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main-content">
+
+    <!-- HERO -->
+    <header class="hero reveal">
+      <p class="hero-eyebrow">&#9670; Exclusive Content &#9670;</p>
+      <h1>HOTT <span class="acc">WRESTLING</span></h1>
+      <p class="hero-tag">Where The Heat Rises</p>
+    </header>
+
+    <!-- TELEGRAM HERO -->
+    <section class="tg-hero reveal">
+      <p class="tg-label">&#9670; The Hottest Room &#9670;</p>
+
+      <a href="#" class="btn-tg-main" id="btn-tg-main">
+        <div class="tg-circle">
+          <img src="https://i.postimg.cc/8z3NsG2c/5842a8fba6515b1e0ad75b03.png" alt="Telegram">
+        </div>
+        <span class="tg-cta-text">JOIN THE CHANNEL</span>
+        <span class="tg-cta-sub">Private &middot; Uncensored &middot; On Fire</span>
+      </a>
+
+      <p class="tg-access-note">Private channel &middot; Temperature rising</p>
+    </section>
+
+    <div class="fire-sep"><span>&#9670;</span></div>
+
+    <!-- CAROUSEL STACK 3D -->
+    <section class="carousel-section reveal">
+      <h2 class="carousel-title">Scorching Moments</h2>
+      <p class="carousel-hint">Tap to open &middot; Swipe to flip</p>
+
+      <div class="stack-stage" id="stack-stage">
+        <!-- Cards generated by JS -->
+      </div>
+
+      <div class="stack-counter"><span id="stack-cur">1</span> / <span id="stack-total">28</span></div>
+
+      <div class="heat-controls">
+        <button id="heat-prev">&#9664;</button>
+        <button id="heat-next">&#9654;</button>
+      </div>
+      <div class="heat-dots" id="heat-dots"></div>
+    </section>
+
+    <div class="fire-sep"><span>&#9670;</span></div>
+
+    <!-- SOCIAL -->
+    <section class="spots-section reveal">
+      <h3 class="spots-title">Other Hot Spots</h3>
+      <div class="spots-grid">
+        <a href="https://www.facebook.com/share/1K1tch2Yzg/" target="_blank" class="spot-link ext-link">
+          <img src="https://i.postimg.cc/G3YQ5j39/584ac2d03ac3a570f94a666d.png" alt="Facebook">
+          <span>FB</span>
+        </a>
+        <a href="https://www.instagram.com/hott_wrestling?igsh=MWF6bjQ4bG1uYjdvMw==" target="_blank" class="spot-link ext-link">
+          <img src="https://i.postimg.cc/JzgMt8ft/580b57fcd9996e24bc43c521.png" alt="Instagram">
+          <span>IG</span>
+        </a>
+        <a href="https://youtube.com/@hottwrestling?si=Dwp_dPibgoYYucaN" target="_blank" class="spot-link ext-link">
+          <img src="https://i.postimg.cc/x17nqQwd/580b57fcd9996e24bc43c545.png" alt="YouTube">
+          <span>YT</span>
+        </a>
+        <a href="#" class="spot-link spot-tg" id="spot-tg-link">
+          <img src="https://i.postimg.cc/8z3NsG2c/5842a8fba6515b1e0ad75b03.png" alt="Telegram">
+          <span>TG</span>
+        </a>
+        <a href="https://www.tiktok.com/@hot_wrestling?_r=1&_t=ZS-966O2yFWxTl" target="_blank" class="spot-link ext-link">
+          <img src="https://i.postimg.cc/FHqN1vMH/613776d7cfd85d00045d1549.png" alt="TikTok">
+          <span>TT</span>
+        </a>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      &copy; HOTT WRESTLING &middot; GRAPPLING ISN'T GAY &middot; FEEL THE HEAT
+    </footer>
+  </div><!-- /main-content -->
+
+  <!-- MUSIC BUTTON -->
+  <button class="music-btn" id="music-btn" title="Music On/Off">
+    <svg class="music-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-2c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+    </svg>
+  </button>
+  <div class="vol-pill" id="vol-pill">Vol: 45%</div>
+  <div class="audio-toast" id="audio-toast">Music unavailable. Check the audio source.</div>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox">
+    <span class="lb-close" id="lb-close">&times;</span>
+    <button class="lb-nav lb-prev" id="lb-prev">&#9664;</button>
+    <button class="lb-nav lb-next" id="lb-next">&#9654;</button>
+    <img src="" alt="" id="lb-img">
+    <div class="lb-count" id="lb-count"></div>
+  </div>
+
+  <script>
+  /* === main.js === */
+  (function () {
+
+    /* ── DATA ── */
+    const imageUrls = [
+      'https://i.postimg.cc/KvXW1VW5/Tumblr-l-1792805306594327.jpg',
+      'https://i.postimg.cc/dQZXtv5f/Tumblr-l-1792808196196149.jpg',
+      'https://i.postimg.cc/59QGN1sk/Tumblr-l-1792811859715783.jpg',
+      'https://i.postimg.cc/Y2LVqkdD/Tumblr-l-1792814672415886.jpg',
+      'https://i.postimg.cc/Vs0TL1Kg/Tumblr-l-1792828149169318.jpg',
+      'https://i.postimg.cc/WpqKbj5m/Tumblr-l-1792830255130984.jpg',
+      'https://i.postimg.cc/L4g76Rx3/Tumblr-l-1792846813115197.jpg',
+      'https://i.postimg.cc/kMRZX9Tx/Tumblr-l-1792848766114675.jpg',
+      'https://i.postimg.cc/jqn9dKMy/Tumblr-l-1792851822420143.jpg',
+      'https://i.postimg.cc/zDHMX5xK/Tumblr-l-1792859672997171.jpg',
+      'https://i.postimg.cc/ryRbFcf4/Tumblr-l-1792862714632847.jpg',
+      'https://i.postimg.cc/zDHMX5xL/Tumblr-l-1792870888650761.jpg',
+      'https://i.postimg.cc/Df4DyFx8/Tumblr-l-1792924076229751.jpg',
+      'https://i.postimg.cc/Df4DyFxS/Tumblr-l-1792926199619281.jpg',
+      'https://i.postimg.cc/Vs0TL1K5/Tumblr-l-1792928397186780.jpg',
+      'https://i.postimg.cc/WpqKbj53/Tumblr-l-1792972242560201.jpg',
+      'https://i.postimg.cc/BbFwhcjk/Tumblr-l-1792974253854211.jpg',
+      'https://i.postimg.cc/yxRrfXDw/Tumblr-l-1793024902141848.jpg',
+      'https://i.postimg.cc/brnF6HZ7/Tumblr-l-1793097477363070.jpg',
+      'https://i.postimg.cc/cC35DMKy/Tumblr-l-1793099552138902.jpg',
+      'https://i.postimg.cc/d0D6HmXT/FB-IMG-1765660053521.jpg',
+      'https://i.postimg.cc/Gp9K7JN4/FB-IMG-1765660094892.jpg',
+      'https://i.postimg.cc/253GcFJb/FB-IMG-1765772150216.jpg',
+      'https://i.postimg.cc/wjwFQbWL/FB-IMG-1768167252898.jpg',
+      'https://i.postimg.cc/pdyCGY7p/FB-IMG-1768167293986.jpg',
+      'https://i.postimg.cc/dV5njSWC/FB-IMG-1768167326564.jpg',
+      'https://i.postimg.cc/rwfgNYh5/FB-IMG-1773766096767.jpg',
+      'https://i.postimg.cc/pdyCGY7T/FB-IMG-1777061541642.jpg'
+    ];
+    const captions = [
+      'Tension','Contact','Sweat','Panting','Strength','Domination','Submission','Clash','Grip',
+      'Pressure','Friction','Heat','Intense','Forbidden','Taboo','Secret','Desire','Skin',
+      'Ritual','Passion','Friction','Pulse','Gaze','Whisper','Tremble','Ecstasy','Climax','No Escape'
+    ];
+    const TG_URL = 'https://t.me/+cmQn3Ljdmnw4M2Nh';
+
+    /* ── REFS ── */
+    const flareOverlay = document.getElementById('flare-overlay');
+    const musicBtn     = document.getElementById('music-btn');
+    const volPill      = document.getElementById('vol-pill');
+    const audioToast   = document.getElementById('audio-toast');
+    const lightbox     = document.getElementById('lightbox');
+    const lbImg        = document.getElementById('lb-img');
+    const lbCount      = document.getElementById('lb-count');
+
+    /* ── AUDIO ── */
+    const audio = new Audio();
+    audio.src = 'https://archive.org/download/www.ssvid.net-britney-spears-gimme-more-traducida-al-espanol_128kbps/www.ssvid.net--Britney-Spears-Gimme-More-Traducida-al-Espa%C3%B1ol_128kbps.m4a';
+    audio.loop = true;
+    audio.volume = 0.45;
+    let audioStarted = false;
+
+    function startAudio() {
+      if (audioStarted) return;
+      audio.play().then(() => {
+        audioStarted = true;
+        musicBtn.classList.add('playing');
+      }).catch(() => {
+        audioToast.style.display = 'block';
+        setTimeout(() => audioToast.style.display = 'none', 4000);
+      });
+    }
+
+    function pauseAudio() {
+      if (!audioStarted) return;
+      audio.pause();
+      audioStarted = false;
+      musicBtn.classList.remove('playing');
+    }
+
+    function toggleAudio() {
+      audioStarted ? pauseAudio() : startAudio();
+    }
+
+    /* Pausa al perder foco */
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) pauseAudio();
+    });
+
+    /* Botón música — toque = toggle, deslizar = volumen */
+    let tStartY = 0, tStartVol = 0, tDragging = false, tMoved = false;
+    musicBtn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      tStartY = e.touches[0].clientY;
+      tStartVol = audio.volume;
+      tDragging = true; tMoved = false;
+      volPill.classList.add('show');
+    }, { passive: false });
+    musicBtn.addEventListener('touchmove', e => {
+      if (!tDragging) return;
+      e.preventDefault();
+      const delta = tStartY - e.touches[0].clientY;
+      if (Math.abs(delta) > 5) tMoved = true;
+      audio.volume = Math.max(0, Math.min(1, tStartVol + delta / 150));
+      volPill.textContent = `Vol: ${Math.round(audio.volume * 100)}%`;
+    }, { passive: false });
+    musicBtn.addEventListener('touchend', () => {
+      tDragging = false;
+      volPill.classList.remove('show');
+      if (!tMoved) toggleAudio();
+    });
+    musicBtn.addEventListener('click', toggleAudio);
+
+    /* ── FLARE ── */
+    function triggerFlare() {
+      flareOverlay.classList.add('active');
+      setTimeout(() => flareOverlay.classList.remove('active'), 280);
+    }
+
+    /* ── EXTERNAL LINKS — pause + open ── */
+    function openExternal(e, url) {
+      e.preventDefault();
+      pauseAudio();
+      window.open(url, '_blank');
+    }
+
+    document.getElementById('btn-tg-main').addEventListener('click', e => openExternal(e, TG_URL));
+    document.getElementById('spot-tg-link').addEventListener('click', e => openExternal(e, TG_URL));
+    document.querySelectorAll('.ext-link').forEach(a => {
+      a.addEventListener('click', e => openExternal(e, a.href));
+    });
+
+    /* ── SCROLL REVEAL ── */
+    const revEls = document.querySelectorAll('.reveal');
+    const revObs = new IntersectionObserver(entries => {
+      entries.forEach((en, i) => {
+        if (en.isIntersecting) {
+          setTimeout(() => en.target.classList.add('visible'), i * 90);
+          revObs.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    revEls.forEach(el => revObs.observe(el));
+
+    /* ── FIRE CANVAS ── */
+    function initFireCanvas() {
+      const canvas = document.getElementById('fire-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+      resize();
+      window.addEventListener('resize', resize);
+
+      class Ember {
+        constructor() {
+          this.reset();
+        }
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = canvas.height + 10;
+          this.size = 1 + Math.random() * 2.5;
+          this.vy = -(0.5 + Math.random() * 1.2);
+          this.vx = (Math.random() - 0.5) * 0.5;
+          this.life = 0;
+          this.maxLife = 120 + Math.random() * 200;
+          this.hue = Math.random() < 0.6 ? 15 : 28;
+        }
+        update() {
+          this.x += this.vx; this.y += this.vy; this.life++;
+          this.opacity = 0.7 * (1 - this.life / this.maxLife);
+          return this.life < this.maxLife && this.y > -20;
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${this.hue},100%,58%,${this.opacity})`;
+          ctx.fill();
+        }
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (particles.length < 55 && Math.random() < 0.45) particles.push(new Ember());
+        particles = particles.filter(p => p.update());
+        particles.forEach(p => p.draw());
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    /* ── STACK 3D CAROUSEL ── */
+    let heatIdx = 0;
+    let isAnimating = false;
+    let stackCards = [];
+
+    function initCarousel() {
+      const stage = document.getElementById('stack-stage');
+      const dots  = document.getElementById('heat-dots');
+      stage.innerHTML = ''; dots.innerHTML = '';
+      stackCards = [];
+
+      document.getElementById('stack-total').textContent = imageUrls.length;
+
+      imageUrls.forEach((url, i) => {
+        const card = document.createElement('div');
+        card.className = 'stack-card s-hidden';
+        card.innerHTML = `<img src="${url}" alt="Pic ${i+1}" loading="${i < 4 ? 'eager' : 'lazy'}"><div class="card-caption">${captions[i] || ''}</div>`;
+        card.addEventListener('click', () => {
+          if (isAnimating) return;
+          if (i === heatIdx) openLightbox(i);
+        });
+        stage.appendChild(card);
+        stackCards.push(card);
+
+        const dot = document.createElement('span');
+        dot.className = 'dot' + (i === 0 ? ' active' : '');
+        dot.addEventListener('click', e => { e.stopPropagation(); goTo(i); });
+        dots.appendChild(dot);
+      });
+
+      applyStack(0, 'none');
+
+      document.getElementById('heat-prev').addEventListener('click', () => {
+        if (!isAnimating) goTo((heatIdx - 1 + imageUrls.length) % imageUrls.length, 'prev');
+      });
+      document.getElementById('heat-next').addEventListener('click', () => {
+        if (!isAnimating) goTo((heatIdx + 1) % imageUrls.length, 'next');
+      });
+
+      /* Swipe táctil */
+      const stage2 = document.getElementById('stack-stage');
+      let sx = 0, sy = 0;
+      stage2.addEventListener('touchstart', e => {
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+      }, { passive: true });
+      stage2.addEventListener('touchend', e => {
+        if (isAnimating) return;
+        const dx = e.changedTouches[0].clientX - sx;
+        const dy = e.changedTouches[0].clientY - sy;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+          dx < 0
+            ? goTo((heatIdx + 1) % imageUrls.length, 'next')
+            : goTo((heatIdx - 1 + imageUrls.length) % imageUrls.length, 'prev');
+        }
+      });
+    }
+
+    /* Aplica las clases de posición a todas las cartas */
+    function applyStack(activeIdx, dir) {
+      stackCards.forEach((card, i) => {
+        card.className = 'stack-card';
+        const rel = (i - activeIdx + imageUrls.length) % imageUrls.length;
+        if      (rel === 0) card.classList.add('s-active');
+        else if (rel === 1) card.classList.add('s-behind1');
+        else if (rel === 2) card.classList.add('s-behind2');
+        else                card.classList.add('s-hidden');
+      });
+    }
+
+    function goTo(newIdx, dir) {
+      if (newIdx === heatIdx || isAnimating) return;
+      isAnimating = true;
+      const oldIdx = heatIdx;
+      heatIdx = newIdx;
+
+      /* Carta activa sale volando */
+      const exitCard = stackCards[oldIdx];
+      exitCard.classList.remove('s-active');
+      exitCard.classList.add(dir === 'prev' ? 's-enter-right' : 's-exit-left');
+
+      /* Reposiciona las demás inmediatamente */
+      applyStack(newIdx, dir);
+
+      /* Marca dots */
+      document.querySelectorAll('#heat-dots .dot').forEach((d, i) => d.classList.toggle('active', i === newIdx));
+      document.getElementById('stack-cur').textContent = newIdx + 1;
+
+      triggerFlare();
+
+      /* Limpia la carta que salió después de la transición */
+      setTimeout(() => {
+        exitCard.classList.remove('s-exit-left', 's-enter-right');
+        exitCard.classList.add('s-hidden');
+        isAnimating = false;
+      }, 560);
+    }
+
+    /* ── LIGHTBOX ── */
+    let lbIdx = 0;
+    function openLightbox(i) {
+      lbIdx = i;
+      lbImg.src = imageUrls[i];
+      lbCount.textContent = `${i + 1} / ${imageUrls.length}`;
+      lightbox.classList.add('active');
+    }
+    function closeLightbox() { lightbox.classList.remove('active'); }
+    document.getElementById('lb-close').addEventListener('click', closeLightbox);
+    document.getElementById('lb-prev').addEventListener('click', e => {
+      e.stopPropagation();
+      lbIdx = (lbIdx - 1 + imageUrls.length) % imageUrls.length;
+      lbImg.src = imageUrls[lbIdx];
+      lbCount.textContent = `${lbIdx + 1} / ${imageUrls.length}`;
+    });
+    document.getElementById('lb-next').addEventListener('click', e => {
+      e.stopPropagation();
+      lbIdx = (lbIdx + 1) % imageUrls.length;
+      lbImg.src = imageUrls[lbIdx];
+      lbCount.textContent = `${lbIdx + 1} / ${imageUrls.length}`;
+    });
+
+    /* ── AGE GATE ── */
+    document.getElementById('btn-enter').addEventListener('click', () => {
+      document.getElementById('age-overlay').classList.add('hidden');
+      document.getElementById('main-content').classList.add('visible');
+      document.body.style.overflow = '';
+      initFireCanvas();
+      initCarousel();
+      startAudio();
+    });
+    document.getElementById('btn-no').addEventListener('click', () => {
+      window.location.href = 'about:blank';
+    });
+    document.body.style.overflow = 'hidden';
+
+  })();
+  </script>
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "851c8b84ce124a1483e503e7117a9936"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
