@@ -6,11 +6,22 @@
   <title>HOTT WRESTLING · Feel the Heat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"></noscript>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23FF4500'/><text y='.85em' font-size='60' fill='white' font-family='Impact' text-anchor='middle' x='50'>HW</text></svg>">
 
   <style>
     /* === index.css === */
+    @font-face { font-display: swap; }
+
+    /* Optimización: secciones fuera de pantalla no renderizan */
+    .carousel-section,
+    .spots-section,
+    .faq-section {
+      content-visibility: auto;
+      contain-intrinsic-size: 0 500px;
+    }
+
     @property --angle {
       syntax: '<angle>';
       initial-value: 0deg;
@@ -157,6 +168,22 @@
       transition: color 0.2s;
     }
     .btn-no:active { color: #aa6666; }
+
+    /* Legal text en age gate */
+    .age-legal {
+      margin-top: 1.5rem;
+      font-size: 0.58rem;
+      color: #4a2a2a;
+      line-height: 1.6;
+      max-width: 280px;
+      text-align: center;
+      font-family: var(--font-b);
+    }
+    .age-legal a {
+      color: #6a3a3a;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
 
     /* ── MAIN CONTENT ── */
     #main-content {
@@ -349,9 +376,9 @@
       letter-spacing: 0.3em;
     }
 
-    /* ── CARRUSEL ── */
+    /* ── CARRUSEL STACK 3D ── */
     .carousel-section {
-      padding: 2.5rem 0 2rem;
+      padding: 2.5rem 0 2.5rem;
       background: rgba(10,3,3,0.6);
       border-top: 1px solid rgba(255,69,0,0.08);
       border-bottom: 1px solid rgba(255,69,0,0.08);
@@ -363,128 +390,200 @@
       color: var(--fire-orange);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.4rem;
       text-shadow: 0 0 15px rgba(255,69,0,0.3);
     }
+    .carousel-hint {
+      font-family: var(--font-b);
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      margin-bottom: 1.8rem;
+      text-transform: uppercase;
+    }
 
-    .heat-carousel-wrapper {
+    /* Stack stage — perspectiva 3D */
+    .stack-stage {
+      perspective: 900px;
+      perspective-origin: 50% 45%;
       position: relative;
-      max-width: 360px;
+      width: 260px;
+      height: 360px;
       margin: 0 auto;
-      height: 420px;
-      overflow: hidden;
       touch-action: pan-y;
     }
-    .heat-carousel-track {
-      display: flex;
-      align-items: center;
-      height: 100%;
-      transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
-    }
-    .heat-card {
-      flex: 0 0 80%;
-      margin: 0 10%;
-      height: 90%;
-      border-radius: 10px;
-      overflow: hidden;
-      background: #200a0a;
-      border: 1px solid #3a1818;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
-      transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
-      cursor: pointer;
-      position: relative;
-    }
-    .heat-card.active-heat {
-      border-color: transparent;
-      box-shadow: 0 0 35px rgba(255,69,0,0.35), 0 0 70px rgba(255,80,0,0.12);
-      transform: scale(1.04);
-    }
-    /* fire border en card activa */
-    .heat-card.active-heat::before {
-      content: '';
+
+    /* Cada carta vive en posición absoluta dentro del stage */
+    .stack-card {
       position: absolute;
-      inset: -2px;
+      inset: 0;
       border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transform-origin: center bottom;
+      will-change: transform, opacity;
+      transition:
+        transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity   0.45s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.4s ease;
+      border: 1px solid #3a1818;
+      background: #120505;
+    }
+
+    /* Estado: frente (activa) */
+    .stack-card.s-active {
+      transform: translateZ(0px) translateY(0px) rotateX(0deg) scale(1);
+      opacity: 1;
+      z-index: 10;
+      border-color: transparent;
+      box-shadow:
+        0 0 0 1.5px var(--fire-orange),
+        0 12px 50px rgba(255,69,0,0.4),
+        0 0 80px rgba(255,100,0,0.15);
+    }
+
+    /* Fire border trace en la carta activa */
+    .stack-card.s-active::before {
+      content: '';
+      position: absolute; inset: -2px;
+      border-radius: 14px;
       background: conic-gradient(
         from var(--angle),
         transparent 0deg,
-        var(--fire-red) 25deg,
-        var(--fire-orange) 55deg,
-        var(--fire-yellow) 80deg,
-        transparent 105deg,
+        var(--fire-red) 20deg,
+        var(--fire-orange) 50deg,
+        var(--fire-yellow) 75deg,
+        transparent 100deg,
         transparent 360deg
       );
-      animation: borderTrace 2.5s linear infinite;
+      animation: borderTrace 2s linear infinite;
       z-index: 0;
     }
-    .heat-card.active-heat::after {
-      content: '';
-      position: absolute;
-      inset: 1px;
-      border-radius: 10px;
-      background: #100505;
+    .stack-card.s-active::after {
+      content: ''; position: absolute; inset: 1px;
+      border-radius: 11px;
+      background: #120505;
       z-index: 1;
     }
-    .heat-card img {
+    .stack-card.s-active img  { filter: brightness(1.1) contrast(1.08) saturate(1.2); }
+    .stack-card.s-active .card-caption { opacity: 1; }
+
+    /* Estado: segunda carta (detrás, ligeramente visible) */
+    .stack-card.s-behind1 {
+      transform: translateZ(-55px) translateY(18px) rotateX(6deg) scale(0.92);
+      opacity: 0.65;
+      z-index: 7;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.7);
+    }
+
+    /* Estado: tercera carta */
+    .stack-card.s-behind2 {
+      transform: translateZ(-105px) translateY(34px) rotateX(11deg) scale(0.84);
+      opacity: 0.35;
+      z-index: 5;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+
+    /* El resto están escondidas */
+    .stack-card.s-hidden {
+      transform: translateZ(-160px) translateY(50px) rotateX(16deg) scale(0.75);
+      opacity: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Animación de salida hacia la izquierda */
+    .stack-card.s-exit-left {
+      transform: translateX(-110%) translateY(-20px) rotateZ(-18deg) scale(0.8);
+      opacity: 0;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    /* Animación de entrada desde la derecha */
+    .stack-card.s-enter-right {
+      transform: translateX(110%) translateY(-20px) rotateZ(18deg) scale(0.8);
+      opacity: 0;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    .stack-card img {
       width: 100%; height: 100%;
       object-fit: cover; display: block;
-      transition: transform 0.5s ease, filter 0.4s ease;
       position: relative; z-index: 2;
+      transition: filter 0.4s ease;
     }
-    .heat-card.active-heat img {
-      filter: brightness(1.08) contrast(1.08) saturate(1.25);
-    }
+
     .card-caption {
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      padding: 1rem 0.8rem 0.7rem;
-      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      padding: 1.2rem 1rem 0.8rem;
+      background: linear-gradient(transparent, rgba(5,1,1,0.85));
       color: #fff;
       font-family: var(--font-d);
-      font-size: 0.9rem;
-      letter-spacing: 0.15em;
+      font-size: 1rem;
+      letter-spacing: 0.18em;
       text-align: center;
+      text-shadow: 0 0 15px rgba(255,69,0,0.6);
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.4s ease;
       pointer-events: none;
       z-index: 3;
     }
-    .heat-card.active-heat .card-caption { opacity: 1; }
 
+    /* Counter badge */
+    .stack-counter {
+      font-family: var(--font-b);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      margin-top: 1rem;
+      margin-bottom: 0.8rem;
+    }
+    .stack-counter span {
+      color: var(--fire-orange);
+      font-weight: 600;
+    }
+
+    /* Controles debajo */
     .heat-controls {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 1rem;
-      margin-top: 1.2rem;
+      gap: 1.5rem;
+      margin-top: 0.5rem;
     }
     .heat-controls button {
-      background: rgba(16,8,8,0.7);
+      background: rgba(16,8,8,0.75);
       border: 1px solid #3a1a1a;
       color: var(--text-dim);
-      width: 40px; height: 40px;
+      width: 44px; height: 44px;
       border-radius: 50%;
-      font-size: 1rem;
+      font-size: 1.1rem;
       cursor: pointer;
       transition: all 0.25s ease;
       backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
     }
     .heat-controls button:active {
       border-color: var(--fire-orange);
       color: var(--fire-yellow);
-      box-shadow: 0 0 15px rgba(255,69,0,0.4);
+      box-shadow: 0 0 18px rgba(255,69,0,0.4);
+      transform: scale(0.93);
     }
 
+    /* Dots compactos */
     .heat-dots {
       display: flex;
       justify-content: center;
-      gap: 0.45rem;
+      gap: 0.35rem;
       margin-top: 0.9rem;
       flex-wrap: wrap;
-      padding: 0 1rem;
+      padding: 0 1.5rem;
     }
     .heat-dots .dot {
-      width: 6px; height: 6px;
+      width: 5px; height: 5px;
       border-radius: 50%;
       background: #3a1818;
       transition: all 0.3s ease;
@@ -492,8 +591,8 @@
     }
     .heat-dots .dot.active {
       background: var(--fire-orange);
-      box-shadow: 0 0 8px rgba(255,69,0,0.6);
-      transform: scale(1.5);
+      box-shadow: 0 0 7px rgba(255,69,0,0.7);
+      transform: scale(1.6);
     }
 
     /* ── SOCIAL SPOTS ── */
@@ -575,6 +674,22 @@
       text-transform: uppercase;
       border-top: 1px solid rgba(255,69,0,0.07);
     }
+    .footer-legal {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.6rem;
+      letter-spacing: 0.1em;
+    }
+    .footer-legal a {
+      color: #4a2222;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .footer-legal a:hover { color: var(--fire-orange); }
+    .footer-legal span { color: #2a1010; }
 
     /* ── MUSIC TOGGLE ── */
     .music-btn {
@@ -707,6 +822,7 @@
     <p class="age-sub">Adult content &middot; 18+ only<br>Things are about to get very hot</p>
     <button class="btn-enter" id="btn-enter">I'M 18+ &middot; WARM ME UP</button>
     <button class="btn-no" id="btn-no">Leave</button>
+    <p class="age-legal">By entering you confirm you are 18 years of age or older and agree to our <a href="terms.html" target="_blank">Terms of Service</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>. This site contains adult content intended for mature audiences only.</p>
   </div>
 
   <!-- MAIN -->
@@ -736,12 +852,17 @@
 
     <div class="fire-sep"><span>&#9670;</span></div>
 
-    <!-- CAROUSEL -->
+    <!-- CAROUSEL STACK 3D -->
     <section class="carousel-section reveal">
       <h2 class="carousel-title">Scorching Moments</h2>
-      <div class="heat-carousel-wrapper" id="heat-wrapper">
-        <div class="heat-carousel-track" id="heat-track"></div>
+      <p class="carousel-hint">Tap to open &middot; Swipe to flip</p>
+
+      <div class="stack-stage" id="stack-stage">
+        <!-- Cards generated by JS -->
       </div>
+
+      <div class="stack-counter"><span id="stack-cur">1</span> / <span id="stack-total">28</span></div>
+
       <div class="heat-controls">
         <button id="heat-prev">&#9664;</button>
         <button id="heat-next">&#9654;</button>
@@ -779,7 +900,16 @@
     </section>
 
     <footer class="site-footer">
-      &copy; HOTT WRESTLING &middot; GRAPPLING ISN'T GAY &middot; FEEL THE HEAT
+      &copy; 2025 HOTT WRESTLING &middot; GRAPPLING ISN'T GAY &middot; FEEL THE HEAT
+      <div class="footer-legal">
+        <a href="terms.html" target="_blank">Terms of Service</a>
+        <span>&middot;</span>
+        <a href="privacy.html" target="_blank">Privacy Policy</a>
+        <span>&middot;</span>
+        <a href="dmca.html" target="_blank">DMCA</a>
+        <span>&middot;</span>
+        <span>18+ Only</span>
+      </div>
     </footer>
   </div><!-- /main-content -->
 
@@ -852,15 +982,23 @@
     const lbImg        = document.getElementById('lb-img');
     const lbCount      = document.getElementById('lb-count');
 
-    /* ── AUDIO ── */
+    /* ── AUDIO — carga solo cuando el usuario entra ── */
     const audio = new Audio();
-    audio.src = 'https://archive.org/download/www.ssvid.net-britney-spears-gimme-more-traducida-al-espanol_128kbps/www.ssvid.net--Britney-Spears-Gimme-More-Traducida-al-Espa%C3%B1ol_128kbps.m4a';
-    audio.loop = true;
-    audio.volume = 0.45;
+    audio.preload = 'none'; /* No descarga nada hasta que se necesite */
+    let audioReady = false;
     let audioStarted = false;
+
+    function prepareAudio() {
+      if (audioReady) return;
+      audioReady = true;
+      audio.src = 'https://archive.org/download/www.ssvid.net-britney-spears-gimme-more-traducida-al-espanol_128kbps/www.ssvid.net--Britney-Spears-Gimme-More-Traducida-al-Espa%C3%B1ol_128kbps.m4a';
+      audio.loop = true;
+      audio.volume = 0.45;
+    }
 
     function startAudio() {
       if (audioStarted) return;
+      prepareAudio();
       audio.play().then(() => {
         audioStarted = true;
         musicBtn.classList.add('playing');
@@ -946,14 +1084,31 @@
       const canvas = document.getElementById('fire-canvas');
       const ctx = canvas.getContext('2d');
       let particles = [];
+      let rafId = null;
+      let isRunning = true;
+
+      /* Menos partículas en móvil */
+      const isMobile = window.innerWidth < 768;
+      const MAX_PARTICLES = isMobile ? 20 : 55;
+      const SPAWN_CHANCE  = isMobile ? 0.25 : 0.45;
+
       function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
       resize();
-      window.addEventListener('resize', resize);
+      window.addEventListener('resize', resize, { passive: true });
+
+      /* Pausa cuando la pestaña está oculta */
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          isRunning = false;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        } else {
+          isRunning = true;
+          animate();
+        }
+      });
 
       class Ember {
-        constructor() {
-          this.reset();
-        }
+        constructor() { this.reset(); }
         reset() {
           this.x = Math.random() * canvas.width;
           this.y = canvas.height + 10;
@@ -978,31 +1133,71 @@
       }
 
       function animate() {
+        if (!isRunning) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (particles.length < 55 && Math.random() < 0.45) particles.push(new Ember());
+        if (particles.length < MAX_PARTICLES && Math.random() < SPAWN_CHANCE) particles.push(new Ember());
         particles = particles.filter(p => p.update());
         particles.forEach(p => p.draw());
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
       animate();
     }
 
-    /* ── CAROUSEL ── */
+    /* ── STACK 3D CAROUSEL — Optimizado ── */
     let heatIdx = 0;
+    let isAnimating = false;
+    let stackCards = [];
+    let loadedImages = new Set();
+
+    /* Carga una imagen solo cuando se necesita */
+    function loadCardImage(idx) {
+      if (loadedImages.has(idx)) return;
+      loadedImages.add(idx);
+      const card = stackCards[idx];
+      if (!card) return;
+      const img = card.querySelector('img');
+      if (img && img.dataset.src) {
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+      }
+    }
+
+    /* Precarga inteligente: activa + siguientes 2 + anterior */
+    function preloadAround(idx) {
+      const total = imageUrls.length;
+      [idx, (idx+1)%total, (idx+2)%total, (idx-1+total)%total].forEach(loadCardImage);
+    }
+
     function initCarousel() {
-      const track = document.getElementById('heat-track');
+      const stage = document.getElementById('stack-stage');
       const dots  = document.getElementById('heat-dots');
-      track.innerHTML = ''; dots.innerHTML = '';
+      stage.innerHTML = ''; dots.innerHTML = '';
+      stackCards = [];
+      loadedImages.clear();
+
+      document.getElementById('stack-total').textContent = imageUrls.length;
 
       imageUrls.forEach((url, i) => {
         const card = document.createElement('div');
-        card.className = 'heat-card' + (i === 0 ? ' active-heat' : '');
-        card.innerHTML = `<img src="${url}" alt="Pic ${i+1}" loading="lazy"><div class="card-caption">${captions[i] || ''}</div>`;
+        card.className = 'stack-card s-hidden';
+
+        /* Placeholder SVG mientras no carga */
+        const placeholder = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='360'%3E%3Crect width='260' height='360' fill='%23120505'/%3E%3C/svg%3E`;
+
+        /* Solo las primeras 3 cargan de inmediato, el resto usan data-src */
+        const imgSrc  = i < 3 ? url : placeholder;
+        const dataSrc = i < 3 ? ''  : `data-src="${url}"`;
+
+        card.innerHTML = `<img src="${imgSrc}" ${dataSrc} alt="Pic ${i+1}" decoding="async"><div class="card-caption">${captions[i] || ''}</div>`;
+
+        if (i < 3) loadedImages.add(i);
+
         card.addEventListener('click', () => {
+          if (isAnimating) return;
           if (i === heatIdx) openLightbox(i);
-          else goTo(i);
         });
-        track.appendChild(card);
+        stage.appendChild(card);
+        stackCards.push(card);
 
         const dot = document.createElement('span');
         dot.className = 'dot' + (i === 0 ? ' active' : '');
@@ -1010,37 +1205,76 @@
         dots.appendChild(dot);
       });
 
-      updateCarousel(0);
+      applyStack(0, 'none');
+      preloadAround(0);
 
-      document.getElementById('heat-prev').addEventListener('click', () => goTo((heatIdx - 1 + imageUrls.length) % imageUrls.length));
-      document.getElementById('heat-next').addEventListener('click', () => goTo((heatIdx + 1) % imageUrls.length));
+      document.getElementById('heat-prev').addEventListener('click', () => {
+        if (!isAnimating) goTo((heatIdx - 1 + imageUrls.length) % imageUrls.length, 'prev');
+      });
+      document.getElementById('heat-next').addEventListener('click', () => {
+        if (!isAnimating) goTo((heatIdx + 1) % imageUrls.length, 'next');
+      });
 
-      /* Swipe */
-      const wrapper = document.getElementById('heat-wrapper');
-      let sx = 0;
-      wrapper.addEventListener('touchstart', e => sx = e.touches[0].clientX, { passive: true });
-      wrapper.addEventListener('touchend', e => {
-        const diff = e.changedTouches[0].clientX - sx;
-        if (Math.abs(diff) > 28) {
-          diff < 0
-            ? goTo((heatIdx + 1) % imageUrls.length)
-            : goTo((heatIdx - 1 + imageUrls.length) % imageUrls.length);
+      /* Swipe táctil */
+      const stage2 = document.getElementById('stack-stage');
+      let sx = 0, sy = 0;
+      stage2.addEventListener('touchstart', e => {
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+      }, { passive: true });
+      stage2.addEventListener('touchend', e => {
+        if (isAnimating) return;
+        const dx = e.changedTouches[0].clientX - sx;
+        const dy = e.changedTouches[0].clientY - sy;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+          dx < 0
+            ? goTo((heatIdx + 1) % imageUrls.length, 'next')
+            : goTo((heatIdx - 1 + imageUrls.length) % imageUrls.length, 'prev');
         }
       });
     }
 
-    function goTo(i) {
-      if (i === heatIdx) return;
-      heatIdx = i;
-      updateCarousel(i);
-      document.querySelectorAll('#heat-dots .dot').forEach((d, idx) => d.classList.toggle('active', idx === i));
-      triggerFlare();
+    /* Aplica las clases de posición a todas las cartas */
+    function applyStack(activeIdx, dir) {
+      stackCards.forEach((card, i) => {
+        card.className = 'stack-card';
+        const rel = (i - activeIdx + imageUrls.length) % imageUrls.length;
+        if      (rel === 0) card.classList.add('s-active');
+        else if (rel === 1) card.classList.add('s-behind1');
+        else if (rel === 2) card.classList.add('s-behind2');
+        else                card.classList.add('s-hidden');
+      });
     }
 
-    function updateCarousel(idx) {
-      document.querySelectorAll('.heat-card').forEach((c, i) => c.classList.toggle('active-heat', i === idx));
-      const offset = -idx * (80 + 20) + (100 - 80) / 2;
-      document.getElementById('heat-track').style.transform = `translateX(${offset}%)`;
+    function goTo(newIdx, dir) {
+      if (newIdx === heatIdx || isAnimating) return;
+      isAnimating = true;
+      const oldIdx = heatIdx;
+      heatIdx = newIdx;
+
+      /* Precarga imágenes alrededor del nuevo índice */
+      preloadAround(newIdx);
+
+      /* Carta activa sale volando */
+      const exitCard = stackCards[oldIdx];
+      exitCard.classList.remove('s-active');
+      exitCard.classList.add(dir === 'prev' ? 's-enter-right' : 's-exit-left');
+
+      /* Reposiciona las demás inmediatamente */
+      applyStack(newIdx, dir);
+
+      /* Marca dots */
+      document.querySelectorAll('#heat-dots .dot').forEach((d, i) => d.classList.toggle('active', i === newIdx));
+      document.getElementById('stack-cur').textContent = newIdx + 1;
+
+      triggerFlare();
+
+      /* Limpia la carta que salió después de la transición */
+      setTimeout(() => {
+        exitCard.classList.remove('s-exit-left', 's-enter-right');
+        exitCard.classList.add('s-hidden');
+        isAnimating = false;
+      }, 560);
     }
 
     /* ── LIGHTBOX ── */
@@ -1082,6 +1316,6 @@
 
   })();
   </script>
-      <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "851c8b84ce124a1483e503e7117a9936"}'></script><!-- End Cloudflare Web Analytics -->
+        <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "851c8b84ce124a1483e503e7117a9936"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
