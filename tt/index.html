@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>HOTT WRESTLING · Join the Channel</title>
+  <meta name="description" content="Join the HOTT WRESTLING Telegram channel. Where the heat rises.">
+  <meta property="og:title" content="HOTT WRESTLING · Join the Channel">
+  <meta property="og:description" content="Where the heat rises. Tap to join on Telegram.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0a0303">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0303;
+      --heat-glow: #ff4500;
+      --heat-bright: #ff6a1a;
+      --ember: #ff8c42;
+      --text: #ddd;
+      --muted: #ccaa88;
+      --border: #3a1a1a;
+    }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Arial', sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      background-image: radial-gradient(ellipse at 50% 0%, #2a0f0f 0%, #0a0303 70%);
+    }
+    #embers { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .wrap {
+      position: relative; z-index: 1;
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 2rem 16px calc(2rem + env(safe-area-inset-bottom));
+    }
+    .welcome {
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.35rem 0.9rem; margin-bottom: 1.6rem;
+      background: rgba(20,5,5,0.6);
+    }
+    h1 {
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      font-size: clamp(2.6rem, 13vw, 4rem);
+      line-height: 1; color: #fff; text-transform: uppercase;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 50px rgba(255,69,0,0.7);
+    }
+    h1 .hot { color: var(--heat-bright); text-shadow: 0 0 60px var(--heat-glow); }
+    .tagline {
+      font-family: 'Courier New', monospace;
+      color: #dd9966; font-size: 0.8rem; letter-spacing: 0.25em;
+      margin-top: 0.6rem;
+    }
+    .zone {
+      position: relative;
+      margin-top: 2.6rem;
+      width: 100%; max-width: 380px;
+      padding: 2.2rem 1.4rem;
+      border: 1px solid var(--border); border-radius: 16px;
+      background: rgba(20,5,5,0.75);
+      overflow: hidden;
+    }
+    .zone::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(255,80,0,0.22) 0%, transparent 65%);
+      animation: glow 3s infinite;
+      pointer-events: none;
+    }
+    @keyframes glow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    .zone-label {
+      position: relative;
+      font-family: 'Impact', sans-serif; font-size: 1.15rem;
+      color: var(--ember); letter-spacing: 0.15em; text-transform: uppercase;
+      margin-bottom: 1.4rem;
+      text-shadow: 0 0 15px rgba(255,69,0,0.4);
+    }
+    .btn {
+      position: relative;
+      display: flex; align-items: center; justify-content: center; gap: 0.8rem;
+      width: 100%;
+      padding: 1.15rem 1.2rem;
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      font-size: 1.35rem; letter-spacing: 0.06em; text-transform: uppercase;
+      color: #fff; text-decoration: none;
+      background: linear-gradient(180deg, var(--heat-bright), var(--heat-glow));
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(255,69,0,0.55), 0 0 70px rgba(255,69,0,0.25);
+      animation: pulse 1.8s infinite;
+      transition: transform 0.15s ease;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn img { width: 34px; height: 34px; filter: drop-shadow(0 0 6px rgba(0,0,0,0.4)); }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 25px rgba(255,69,0,0.5), 0 0 50px rgba(255,106,26,0.3); }
+      50% { box-shadow: 0 0 45px rgba(255,106,26,0.85), 0 0 90px rgba(255,69,0,0.45); }
+    }
+    .steps {
+      position: relative;
+      list-style: none;
+      margin-top: 1.5rem;
+      display: grid; gap: 0.55rem;
+      text-align: left;
+      font-size: 0.85rem; color: #ccc;
+    }
+    .steps li { display: flex; gap: 0.6rem; align-items: baseline; }
+    .steps b {
+      flex: 0 0 auto;
+      font-family: 'Impact', sans-serif; font-weight: normal;
+      color: var(--heat-bright);
+      width: 1.4rem; height: 1.4rem; line-height: 1.4rem;
+      text-align: center; border: 1px solid var(--border); border-radius: 50%;
+      font-size: 0.8rem;
+    }
+    .home {
+      margin-top: 2rem;
+      font-family: 'Courier New', monospace; font-size: 0.75rem;
+      color: #997766; text-decoration: none; letter-spacing: 0.1em;
+      border-bottom: 1px dashed #553333; padding-bottom: 2px;
+    }
+    footer {
+      margin-top: 1.6rem;
+      font-family: 'Courier New', monospace; font-size: 0.65rem;
+      color: #775544; letter-spacing: 0.15em; text-transform: uppercase;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .zone::before { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="embers" aria-hidden="true"></canvas>
+  <main class="wrap">
+    <p class="welcome">Welcome from TikTok 🔥</p>
+    <h1><span class="hot">HOTT</span> WRESTLING</h1>
+    <p class="tagline">WHERE THE HEAT RISES</p>
+
+    <section class="zone">
+      <p class="zone-label">The Hottest Room</p>
+      <a class="btn" href="https://t.me/+7ZhwtGGhYWliY2Mx" rel="noopener">
+        <img src="https://hottwrestling.b-cdn.net/RSS/pngwing.com%20(2).png" alt="" onerror="this.remove()">
+        Join on Telegram
+      </a>
+      <ol class="steps">
+        <li><b>1</b><span>Tap the button above.</span></li>
+        <li><b>2</b><span>Tap <strong>Request to Join</strong> in Telegram.</span></li>
+        <li><b>3</b><span>You're in as soon as you're approved.</span></li>
+      </ol>
+    </section>
+
+    <a class="home" href="https://hottwrestling.com/">hottwrestling.com</a>
+    <footer>© HOTT WRESTLING · FEEL THE HEAT</footer>
+  </main>
+
+  <script>
+    (function () {
+      var canvas = document.getElementById('embers');
+      var ctx = canvas.getContext && canvas.getContext('2d');
+      if (!ctx) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var width = 0, height = 0, sparks = [];
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function makeSpark(startAnywhere) {
+        return {
+          x: Math.random() * width,
+          y: startAnywhere ? Math.random() * height : height + 10,
+          r: 0.8 + Math.random() * 2.2,
+          vy: 0.4 + Math.random() * 1.1,
+          vx: (Math.random() - 0.5) * 0.4,
+          life: 0.4 + Math.random() * 0.6
+        };
+      }
+
+      function init() {
+        resize();
+        var count = Math.round(Math.min(60, width / 8));
+        sparks = [];
+        for (var i = 0; i < count; i++) sparks.push(makeSpark(true));
+      }
+
+      function tick() {
+        ctx.clearRect(0, 0, width, height);
+        for (var i = 0; i < sparks.length; i++) {
+          var s = sparks[i];
+          s.y -= s.vy;
+          s.x += s.vx + Math.sin(s.y / 40) * 0.3;
+          var fade = Math.max(0, Math.min(1, s.y / height)) * s.life;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255,' + (90 + Math.round(s.r * 30)) + ',26,' + fade.toFixed(3) + ')';
+          ctx.shadowColor = '#ff4500';
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          if (s.y < -10) sparks[i] = makeSpark(false);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener('resize', resize);
+      init();
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
